@@ -82,7 +82,6 @@ func GenData(m *metrics, scrapeInterval int) {
 
 		m.size.Add(10)
 		m.value.Set(55)
-
 		time.Sleep(time.Duration(scrapeInterval) * time.Second)
 
 	}
