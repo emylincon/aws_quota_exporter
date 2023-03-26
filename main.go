@@ -18,6 +18,15 @@ type Metrics struct {
 	value prometheus.Gauge
 }
 
+// naming metrics:
+// aws_quota_service_name_quota_name
+// Labels:
+// - UsageMetric.MetricStatisticRecommendation (if available)
+// - unit
+// - adjsutable
+// - globalQuota
+// avoid _sum, _count, _bucket and _total as suffix in metric names
+
 // NewMetrics returns a new metric
 func NewMetrics(reg prometheus.Registerer) *Metrics {
 	m := &Metrics{
