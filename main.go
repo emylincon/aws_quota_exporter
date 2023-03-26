@@ -7,17 +7,20 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/emylincon/aws_quota_exporter/pkg"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-type metrics struct {
+// Metrics represents data structure
+type Metrics struct {
 	size  prometheus.Counter
 	value prometheus.Gauge
 }
 
-func NewMetrics(reg prometheus.Registerer) *metrics {
-	m := &metrics{
+// NewMetrics returns a new metric
+func NewMetrics(reg prometheus.Registerer) *Metrics {
+	m := &Metrics{
 		size: prometheus.NewCounter(prometheus.CounterOpts{
 			Namespace: "nginx",
 			Name:      "size_bytes_total",
@@ -45,6 +48,7 @@ func main() {
 	fmt.Println("Config file:", *configFile)
 
 	reg := prometheus.NewRegistry()
+	awsQuota(reg, *scrapeInterval)
 
 	m := NewMetrics(reg)
 	go GenData(m, *scrapeInterval)
@@ -77,7 +81,8 @@ func main() {
 	}
 }
 
-func GenData(m *metrics, scrapeInterval int) {
+// GenData is a helper function for testing
+func GenData(m *Metrics, scrapeInterval int) {
 	for {
 
 		m.size.Add(10)
@@ -85,4 +90,19 @@ func GenData(m *metrics, scrapeInterval int) {
 		time.Sleep(time.Duration(scrapeInterval) * time.Second)
 
 	}
+}
+
+func awsQuota(reg *prometheus.Registry, scrapeInterval int) {
+
+	// create quota collector
+	fmt.Println("starting quota collector")
+	// qc := pkg.NewBasicCollector(pkg.GetRandomData)
+	// reg.MustRegister(qc)
+
+	qc := pkg.NewPrometheusCollector(pkg.GetRandomData)
+	reg.MustRegister(qc)
+	// fmt.Println("sleeping for ", scrapeInterval)
+	// time.Sleep(time.Duration(scrapeInterval) * time.Second)
+	fmt.Println("finish collecting")
+
 }
