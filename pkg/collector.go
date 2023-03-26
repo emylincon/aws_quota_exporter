@@ -4,6 +4,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/model"
@@ -37,6 +38,7 @@ type PrometheusMetric struct {
 
 // PrometheusCollector Data structure
 type PrometheusCollector struct {
+	mutex      sync.RWMutex
 	getMetrics func() ([]*PrometheusMetric, error)
 }
 
@@ -61,6 +63,8 @@ func (p *PrometheusCollector) Describe(descs chan<- *prometheus.Desc) {
 
 // Collect metrics
 func (p *PrometheusCollector) Collect(metrics chan<- prometheus.Metric) {
+	p.mutex.Lock() // To protect metrics from concurrent collects.
+	defer p.mutex.Unlock()
 	data, err := p.getMetrics()
 	if err != nil {
 		desc := prometheus.NewDesc(
