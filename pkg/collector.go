@@ -1,6 +1,7 @@
 package pkg
 
 import (
+	"fmt"
 	"regexp"
 	"sort"
 	"strings"
@@ -54,8 +55,10 @@ func (p *PrometheusCollector) Describe(descs chan<- *prometheus.Desc) {
 	data, err := p.getMetrics()
 	if err != nil {
 		descs <- prometheus.NewInvalidDesc(err)
+		fmt.Println("Error getting metrics:", err)
 		return
 	}
+	fmt.Println("logging:", data, len(data))
 	for _, metric := range removeDuplicatedMetrics(data) {
 		descs <- createDesc(metric)
 	}
@@ -73,6 +76,7 @@ func (p *PrometheusCollector) Collect(metrics chan<- prometheus.Metric) {
 			[]string{},
 			nil,
 		)
+		fmt.Println("Error collecting metrics:", err)
 		metrics <- prometheus.NewInvalidMetric(desc, err)
 	}
 	for _, metric := range removeDuplicatedMetrics(data) {
@@ -105,10 +109,12 @@ func removeDuplicatedMetrics(metrics []*PrometheusMetric) []*PrometheusMetric {
 	keys := make(map[string]bool)
 	filteredMetrics := []*PrometheusMetric{}
 	for _, metric := range metrics {
-		check := metric.Name + combineLabels(metric.Labels)
-		if _, value := keys[check]; !value {
-			keys[check] = true
-			filteredMetrics = append(filteredMetrics, metric)
+		if metric != nil {
+			check := metric.Name + combineLabels(metric.Labels)
+			if _, value := keys[check]; !value {
+				keys[check] = true
+				filteredMetrics = append(filteredMetrics, metric)
+			}
 		}
 	}
 	return filteredMetrics
