@@ -1,5 +1,6 @@
 package scrape
 
+// Documentation for interacting with aws-sdk-go-v2 https://aws.github.io/aws-sdk-go-v2/docs/getting-started/
 import (
 	"context"
 	"fmt"
