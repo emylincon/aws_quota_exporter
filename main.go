@@ -22,7 +22,7 @@ type ServiceConfig struct {
 func main() {
 	var (
 		configFile = flag.String("config.file", "config.yaml", "Path to configuration file")
-		promPort   = flag.Int("prom.port", 9150, "port to expose prometheus metrics")
+		promPort   = flag.Int("prom.port", 10100, "port to expose prometheus metrics")
 	)
 	flag.Parse()
 	version := "0.0.0"
