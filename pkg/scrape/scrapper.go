@@ -42,6 +42,7 @@ func (s *Scraper) CreateScraper(regions []string, serviceCode string) func() ([]
 				fmt.Printf("Failed to get service quotas: %v", err)
 				return nil, err // TODO: return errors
 			}
+
 			metricList = append(metricList, metrics...)
 		}
 		return metricList, nil
@@ -53,14 +54,14 @@ func (s *Scraper) CreateScraper(regions []string, serviceCode string) func() ([]
 // Transform to prometheus format
 func Transform(quotas *sq.ListServiceQuotasOutput, region string) ([]*pkg.PrometheusMetric, error) {
 	metrics := make([]*pkg.PrometheusMetric, len(quotas.Quotas))
-	for _, v := range quotas.Quotas {
+	for i, v := range quotas.Quotas {
 		metric := &pkg.PrometheusMetric{
 			Name:   createMetricName(*v.ServiceCode, *v.QuotaName),
 			Value:  *v.Value,
 			Labels: map[string]string{"adjustable": strconv.FormatBool(v.Adjustable), "global_quota": strconv.FormatBool(v.GlobalQuota), "unit": *v.Unit, "region": region},
 			Desc:   *v.QuotaName,
 		}
-		metrics = append(metrics, metric)
+		metrics[i] = metric
 	}
 	return metrics, nil
 }
