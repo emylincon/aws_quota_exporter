@@ -58,7 +58,6 @@ func (p *PrometheusCollector) Describe(descs chan<- *prometheus.Desc) {
 		fmt.Println("Error getting metrics:", err)
 		return
 	}
-	fmt.Println("logging:", data, len(data))
 	for _, metric := range removeDuplicatedMetrics(data) {
 		descs <- createDesc(metric)
 	}

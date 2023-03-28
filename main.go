@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/emylincon/aws_quota_exporter/pkg"
 	"github.com/emylincon/aws_quota_exporter/pkg/scrape"
@@ -12,12 +15,26 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
+func closeHandler() {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	signal.Notify(c, syscall.SIGTERM)
+	go func() {
+		<-c
+		fmt.Println("\r- Ctrl+C : Closed Gracefully")
+		os.Exit(0)
+	}()
+}
+
 func main() {
 	var (
 		configFile = flag.String("config.file", "config.yaml", "Path to configuration file")
 		promPort   = flag.Int("prom.port", 10100, "port to expose prometheus metrics")
 	)
 	flag.Parse()
+	// Handle keyboard interrupt
+	closeHandler()
+
 	version := "0.0.0"
 	// Make Prometheus client aware of our collectors.
 	fmt.Println("Config file:", *configFile)
