@@ -12,13 +12,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-// ServiceConfig struct
-type ServiceConfig struct {
-	region      string
-	profile     string
-	serviceCode string
-}
-
 func main() {
 	var (
 		configFile = flag.String("config.file", "config.yaml", "Path to configuration file")
@@ -28,16 +21,23 @@ func main() {
 	version := "0.0.0"
 	// Make Prometheus client aware of our collectors.
 	fmt.Println("Config file:", *configFile)
-	sc := ServiceConfig{region: "us-east-1", profile: "emeka", serviceCode: "lambda"}
-	s, err := scrape.NewScraper(sc.profile)
+	qcl, err := pkg.NewQuotaConfig(*configFile)
+	if err != nil {
+		fmt.Printf("Error parsing '%s': %s", *configFile, err)
+		return
+	}
+	profile := "emeka"
+	s, err := scrape.NewScraper(profile)
 	if err != nil {
 		fmt.Println("Error creating scrape:", err)
 		return
 	}
 
 	reg := prometheus.NewRegistry()
-	qc := pkg.NewPrometheusCollector(s.CreateScraper(sc.region, sc.serviceCode))
-	reg.MustRegister(qc)
+	for _, qc := range qcl.Jobs {
+		pc := pkg.NewPrometheusCollector(s.CreateScraper(qc.Regions, qc.ServiceCode))
+		reg.MustRegister(pc)
+	}
 
 	mux := http.NewServeMux()
 	promHandler := promhttp.HandlerFor(reg, promhttp.HandlerOpts{})

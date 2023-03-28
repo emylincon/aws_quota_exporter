@@ -1,6 +1,24 @@
 # aws_quota_exporter
 Export AWS quotas on Prometheus
 
+# Usage
+* Run the following command
+```
+go run . --prom.port=10100 --config.file=config.yml
+```
+* Example of `config.yml`
+```yaml
+jobs:
+  - serviceCode: lambda
+    regions:
+      - us-west-1
+      - us-east-1
+  - serviceCode: cloudformation
+    regions:
+      - us-west-1
+      - us-east-1
+```
+
 ## Useful resources
 * include default [port](https://github.com/prometheus/prometheus/wiki/Default-port-allocations) here when finished
 * [Guide on how to write an exporter](https://prometheus.io/docs/instrumenting/writing_exporters/)
