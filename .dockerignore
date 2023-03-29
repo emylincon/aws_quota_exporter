@@ -1,0 +1,6 @@
+.github
+docker/
+*ocker*
+Taskfile
+README
+.pre-commit*

@@ -1,0 +1,10 @@
+groups:
+  - name: sample-alerts
+    rules:
+      - alert: App1Slow
+        expr: 1 == 0
+        labels:
+          severity: warning
+          service: app1
+        annotations:
+          summary: App 1 is running slow

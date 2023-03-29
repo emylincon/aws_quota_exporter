@@ -1,0 +1,9 @@
+jobs:
+  - serviceCode: lambda
+    regions:
+      - us-west-1
+      - us-east-1
+  - serviceCode: cloudformation
+    regions:
+      - us-west-1
+      - us-east-1
