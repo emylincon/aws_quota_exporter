@@ -1,0 +1,32 @@
+---
+version: '3.8'
+
+services:
+  aws_quota_exporter:
+    build:
+      context: ./docker
+      dockerfile: Dockerfile
+    ports:
+      - 10100:10100
+    volumes:
+      - ./docker/aws_quota_exporter/config.yml:/etc/aws_quota_exporter/config.yml
+      - ${AWS_FOLDER}:/root/.aws/
+    environment:
+      - CONFIG_FILE=/etc/aws_quota_exporter/config.yml
+
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - 9090:9090
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./docker/prometheus/rules:/etc/prometheus/rules
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - 3000:3000
+    volumes:
+      - ./docker/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./docker/grafana/datasources:/etc/grafana/provisioning/datasources
+      - ./docker/grafana/grafana.ini:/etc/grafana/grafana.ini
