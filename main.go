@@ -34,17 +34,15 @@ func main() {
 	flag.Parse()
 	// Handle keyboard interrupt
 	closeHandler()
-
 	version := "0.0.0"
+	fmt.Println("Initializing AWS Quota Exporter Version:", version)
 	// Make Prometheus client aware of our collectors.
-	fmt.Println("Config file:", *configFile)
 	qcl, err := pkg.NewQuotaConfig(*configFile)
 	if err != nil {
 		fmt.Printf("Error parsing '%s': %s", *configFile, err)
 		return
 	}
-	profile := "emeka"
-	s, err := scrape.NewScraper(profile)
+	s, err := scrape.NewScraper()
 	if err != nil {
 		fmt.Println("Error creating scrape:", err)
 		return
@@ -78,8 +76,8 @@ func main() {
 
 	// Start listening for HTTP connections.
 	port := fmt.Sprintf(":%d", *promPort)
-	log.Printf("starting nginx exporter on %q/metrics", port)
+	log.Printf("Starting AWS Quota Exporter on %q/metrics", port)
 	if err := http.ListenAndServe(port, mux); err != nil {
-		log.Fatalf("cannot start nginx exporter: %s", err)
+		log.Fatalf("Cannot start AWS Quota Exporter: %s", err)
 	}
 }
