@@ -18,8 +18,8 @@ type Scraper struct {
 }
 
 // NewScraper creates a new Scraper
-func NewScraper(profileName string) (*Scraper, error) {
-	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithSharedConfigProfile(profileName))
+func NewScraper() (*Scraper, error) {
+	cfg, err := config.LoadDefaultConfig(context.TODO()) // config.WithRegion("us-west-2")
 	if err != nil {
 		return &Scraper{}, err
 	}
@@ -39,7 +39,7 @@ func (s *Scraper) CreateScraper(regions []string, serviceCode string) func() ([]
 		for _, region := range regions {
 			metrics, err := getServiceQuotas(ctx, region, &input, sclient)
 			if err != nil {
-				fmt.Printf("Failed to get service quotas: %v", err)
+				fmt.Printf("Failed to get service quotas: %v\n", err)
 				return nil, err // TODO: return errors
 			}
 
@@ -75,7 +75,6 @@ func getServiceQuotas(ctx context.Context, region string, sqInput *sq.ListServic
 
 	r, err := client.ListServiceQuotas(ctx, sqInput, opts)
 	if err != nil {
-		fmt.Printf("Failed to get service quotas: %v", err)
 		return nil, err
 	}
 	return Transform(r, region)

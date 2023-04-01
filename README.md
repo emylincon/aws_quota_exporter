@@ -18,6 +18,26 @@ jobs:
       - us-west-1
       - us-east-1
 ```
+# AWS Authentication
+This program relies on the `AWS SDK for Go V2` for handling authentication.
+The AWS SDK uses its default credential chain to find AWS credentials. This default credential chain looks for credentials in the following order:
+
+1. **Environment variables**
+    1. **Static Credentials:** `(AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN)`
+    2. **Web Identity Token:** `(AWS_WEB_IDENTITY_TOKEN_FILE)`
+
+2. **Shared configuration files**
+    * SDK defaults to `credentials file` and `config file` under `.aws` folder that is placed in the home folder on the host.
+
+3. IAM role for tasks.
+4. IAM role for Amazon EC2.
+
+*By default, the SDK checks the `AWS_PROFILE` environment variable to determine which profile to use. If no `AWS_PROFILE` variable is set, the SDK uses the default profile.*
+
+*To set profile to use:*
+```bash
+$ AWS_PROFILE=test_profile
+```
 
 ## Useful resources
 * include default [port](https://github.com/prometheus/prometheus/wiki/Default-port-allocations) here when finished
