@@ -26,6 +26,8 @@ var replacer = strings.NewReplacer(
 	"<", "_",
 	">", "_",
 	"%", "_percent",
+	"(", "",
+	")", "",
 )
 var splitRegexp = regexp.MustCompile(`([a-z0-9])([A-Z])`)
 

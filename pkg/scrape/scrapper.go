@@ -40,7 +40,7 @@ func (s *Scraper) CreateScraper(regions []string, serviceCode string) func() ([]
 			metrics, err := getServiceQuotas(ctx, region, &input, sclient)
 			if err != nil {
 				fmt.Printf("Failed to get service quotas: %v\n", err)
-				return nil, err // TODO: return errors
+				return nil, err
 			}
 
 			metricList = append(metricList, metrics...)
@@ -52,16 +52,31 @@ func (s *Scraper) CreateScraper(regions []string, serviceCode string) func() ([]
 }
 
 // Transform to prometheus format
-func Transform(quotas *sq.ListServiceQuotasOutput, region string) ([]*pkg.PrometheusMetric, error) {
-	metrics := make([]*pkg.PrometheusMetric, len(quotas.Quotas))
-	for i, v := range quotas.Quotas {
+func Transform(quotas *sq.ListServiceQuotasOutput, defaultQuotas *sq.ListAWSDefaultServiceQuotasOutput, region string) ([]*pkg.PrometheusMetric, error) {
+	metrics := []*pkg.PrometheusMetric{}
+	check := map[string]bool{}
+	for _, v := range quotas.Quotas {
+		metricName := createMetricName(*v.ServiceCode, *v.QuotaName)
 		metric := &pkg.PrometheusMetric{
-			Name:   createMetricName(*v.ServiceCode, *v.QuotaName),
+			Name:   metricName,
 			Value:  *v.Value,
 			Labels: map[string]string{"adjustable": strconv.FormatBool(v.Adjustable), "global_quota": strconv.FormatBool(v.GlobalQuota), "unit": *v.Unit, "region": region},
 			Desc:   *v.QuotaName,
 		}
-		metrics[i] = metric
+		metrics = append(metrics, metric)
+		check[metricName] = true
+	}
+	for _, d := range defaultQuotas.Quotas {
+		metricName := createMetricName(*d.ServiceCode, *d.QuotaName)
+		if _, ok := check[metricName]; !ok {
+			metric := &pkg.PrometheusMetric{
+				Name:   metricName,
+				Value:  *d.Value,
+				Labels: map[string]string{"adjustable": strconv.FormatBool(d.Adjustable), "global_quota": strconv.FormatBool(d.GlobalQuota), "unit": *d.Unit, "region": region},
+				Desc:   *d.QuotaName,
+			}
+			metrics = append(metrics, metric)
+		}
 	}
 	return metrics, nil
 }
@@ -73,9 +88,16 @@ func createMetricName(serviceCode, quotaName string) string {
 func getServiceQuotas(ctx context.Context, region string, sqInput *sq.ListServiceQuotasInput, client *sq.Client) ([]*pkg.PrometheusMetric, error) {
 	opts := func(o *sq.Options) { o.Region = region }
 
+	// Get applied Quotas
 	r, err := client.ListServiceQuotas(ctx, sqInput, opts)
 	if err != nil {
 		return nil, err
 	}
-	return Transform(r, region)
+
+	// Get default Quotas
+	d, err := client.ListAWSDefaultServiceQuotas(ctx, &sq.ListAWSDefaultServiceQuotasInput{ServiceCode: sqInput.ServiceCode}, opts)
+	if err != nil {
+		return nil, err
+	}
+	return Transform(r, d, region)
 }
