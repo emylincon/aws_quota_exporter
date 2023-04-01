@@ -38,8 +38,53 @@ The AWS SDK uses its default credential chain to find AWS credentials. This defa
 ```bash
 $ AWS_PROFILE=test_profile
 ```
+## AWS Permission Required
+The exporter requires the AWS managed policy `ServiceQuotasReadOnlyAccess`. This also depends on the jobs specified in the `config.yml` file, as all of the permissions are probably not required. The permissions included in `ServiceQuotasReadOnlyAccess` are as follows in policy document:
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "autoscaling:DescribeAccountLimits",
+                "cloudformation:DescribeAccountLimits",
+                "cloudwatch:DescribeAlarmsForMetric",
+                "cloudwatch:DescribeAlarms",
+                "cloudwatch:GetMetricData",
+                "cloudwatch:GetMetricStatistics",
+                "dynamodb:DescribeLimits",
+                "elasticloadbalancing:DescribeAccountLimits",
+                "iam:GetAccountSummary",
+                "kinesis:DescribeLimits",
+                "organizations:DescribeAccount",
+                "organizations:DescribeOrganization",
+                "organizations:ListAWSServiceAccessForOrganization",
+                "rds:DescribeAccountAttributes",
+                "route53:GetAccountLimit",
+                "tag:GetTagKeys",
+                "tag:GetTagValues",
+                "servicequotas:GetAssociationForServiceQuotaTemplate",
+                "servicequotas:GetAWSDefaultServiceQuota",
+                "servicequotas:GetRequestedServiceQuotaChange",
+                "servicequotas:GetServiceQuota",
+                "servicequotas:GetServiceQuotaIncreaseRequestFromTemplate",
+                "servicequotas:ListAWSDefaultServiceQuotas",
+                "servicequotas:ListRequestedServiceQuotaChangeHistory",
+                "servicequotas:ListRequestedServiceQuotaChangeHistoryByQuota",
+                "servicequotas:ListServices",
+                "servicequotas:ListServiceQuotas",
+                "servicequotas:ListServiceQuotaIncreaseRequestsInTemplate",
+                "servicequotas:ListTagsForResource"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
+```
+*Please Remove permissions that you would not use*
 
-## Useful resources
+# Useful resources
 * include default [port](https://github.com/prometheus/prometheus/wiki/Default-port-allocations) here when finished
 * [Guide on how to write an exporter](https://prometheus.io/docs/instrumenting/writing_exporters/)
 * [AWS Service Quota Documentation](https://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html)
