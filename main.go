@@ -3,54 +3,68 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/emylincon/aws_quota_exporter/pkg"
-	"github.com/emylincon/aws_quota_exporter/pkg/scrape"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"golang.org/x/exp/slog"
 )
 
-func closeHandler() {
+func closeHandler(logger *slog.Logger) {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 	signal.Notify(c, syscall.SIGTERM)
 	go func() {
 		<-c
-		fmt.Println("\r- Ctrl+C : Closed Gracefully")
+		logger.Warn("Shutting down", "signal", "Keyboard Interrupt", "input", "Ctrl+C")
 		os.Exit(0)
 	}()
 }
 
+// NewLogger returns a logger
+func NewLogger(formatType string) *slog.Logger {
+	if formatType == "json" {
+		return slog.New(slog.NewJSONHandler(os.Stdout))
+	}
+	return slog.New(slog.NewTextHandler(os.Stdout))
+}
+
 func main() {
 	var (
-		configFile = flag.String("config.file", "config.yaml", "Path to configuration file")
-		promPort   = flag.Int("prom.port", 10100, "port to expose prometheus metrics")
+		configFile    = flag.String("config.file", "config.yaml", "Path to configuration file. Defaults to config.yaml")
+		logFormatType = flag.String("log.format", "text", "Format of log messages (text or json). Defaults to text")
+		promPort      = flag.Int("prom.port", 10100, "port to expose prometheus metrics, Defaults to 10100")
 	)
 	flag.Parse()
-	// Handle keyboard interrupt
-	closeHandler()
+
 	version := "0.0.0"
-	fmt.Println("Initializing AWS Quota Exporter Version:", version)
+
+	logger := NewLogger(*logFormatType).With("version", version)
+
+	logger.Info("Initializing AWS Quota Exporter")
+
+	// Handle keyboard interrupt
+	closeHandler(logger)
+
 	// Make Prometheus client aware of our collectors.
 	qcl, err := pkg.NewQuotaConfig(*configFile)
 	if err != nil {
-		fmt.Printf("Error parsing '%s': %s", *configFile, err)
+		logger.Error(fmt.Sprintf("Error parsing '%s'", *configFile), "error", err)
 		return
 	}
-	s, err := scrape.NewScraper()
+	s, err := pkg.NewScraper()
 	if err != nil {
-		fmt.Println("Error creating scrape:", err)
+		logger.Error("Error creating scraper", "error", err)
 		return
 	}
 
 	reg := prometheus.NewRegistry()
 	for _, qc := range qcl.Jobs {
-		pc := pkg.NewPrometheusCollector(s.CreateScraper(qc.Regions, qc.ServiceCode))
+		pc := pkg.NewPrometheusCollector(logger, s.CreateScraper(qc.Regions, qc.ServiceCode))
 		reg.MustRegister(pc)
 	}
 
@@ -76,8 +90,8 @@ func main() {
 
 	// Start listening for HTTP connections.
 	port := fmt.Sprintf(":%d", *promPort)
-	log.Printf("Starting AWS Quota Exporter on %q/metrics", port)
+	logger.Info("Starting AWS Quota Exporter", "address", fmt.Sprintf(":%v/metrics", port))
 	if err := http.ListenAndServe(port, mux); err != nil {
-		log.Fatalf("Cannot start AWS Quota Exporter: %s", err)
+		logger.Error("Cannot start AWS Quota Exporter", "error", err)
 	}
 }

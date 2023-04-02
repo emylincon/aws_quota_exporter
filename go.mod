@@ -8,6 +8,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/servicequotas v1.14.7
 	github.com/prometheus/client_golang v1.14.0
 	github.com/prometheus/common v0.37.0
+	golang.org/x/exp v0.0.0-20230321023759-10a507213a29
 	gopkg.in/yaml.v2 v2.4.0
 )
 
