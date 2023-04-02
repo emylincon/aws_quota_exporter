@@ -22,6 +22,7 @@ func closeHandler(logger *slog.Logger) {
 	go func() {
 		<-c
 		logger.Warn("Shutting down", "signal", "Keyboard Interrupt", "input", "Ctrl+C")
+		os.RemoveAll(pkg.CacheFolder)
 		os.Exit(0)
 	}()
 }
@@ -39,6 +40,7 @@ func main() {
 		configFile    = flag.String("config.file", "config.yaml", "Path to configuration file. Defaults to config.yaml")
 		logFormatType = flag.String("log.format", "text", "Format of log messages (text or json). Defaults to text")
 		promPort      = flag.Int("prom.port", 10100, "port to expose prometheus metrics, Defaults to 10100")
+		cacheDuration = flag.Duration("cache.duration", 300, "cache expiry time. Defaults to 300 seconds")
 	)
 	flag.Parse()
 
@@ -50,6 +52,14 @@ func main() {
 
 	// Handle keyboard interrupt
 	closeHandler(logger)
+
+	// check if cache folder exists
+	if _, err := os.Stat(pkg.CacheFolder); os.IsNotExist(err) {
+		err = os.MkdirAll(pkg.CacheFolder, 0755)
+		if err != nil {
+			logger.Error("Error creating cache folder", "error", err)
+		}
+	}
 
 	// Make Prometheus client aware of our collectors.
 	qcl, err := pkg.NewQuotaConfig(*configFile)
@@ -66,7 +76,7 @@ func main() {
 	reg := prometheus.NewRegistry()
 	logger.Info("Registring scrappers")
 	for _, qc := range qcl.Jobs {
-		pc := pkg.NewPrometheusCollector(logger, s.CreateScraper(qc.Regions, qc.ServiceCode))
+		pc := pkg.NewPrometheusCollector(logger, s.CreateScraper(qc.Regions, qc.ServiceCode, *cacheDuration))
 		reg.MustRegister(pc)
 	}
 

@@ -29,11 +29,22 @@ func NewScraper() (*Scraper, error) {
 }
 
 // CreateScraper Scrape Quotas from AWS
-func (s *Scraper) CreateScraper(regions []string, serviceCode string) func(logger *slog.Logger) ([]*PrometheusMetric, error) {
+func (s *Scraper) CreateScraper(regions []string, serviceCode string, cacheExpiryDuration time.Duration) func(logger *slog.Logger) ([]*PrometheusMetric, error) {
+	// create new cache for service
+	cacheStore := NewCache(serviceCode+".json", cacheExpiryDuration)
+
 	return func(logger *slog.Logger) ([]*PrometheusMetric, error) {
 		// logging start metrics collection
-		start := time.Now()
 		l := logger.With("serviceCode", serviceCode, "regions", regions, logGroup)
+		start := time.Now()
+		cacheData, err := cacheStore.Read()
+		if err == nil {
+			l.Info("Metrics Read from cache",
+				"duration", time.Since(start),
+			)
+			return cacheData, nil
+		}
+		l.Debug("Cache Read Error", "error", err)
 		l.Info("Scrapping metrics")
 
 		ctx := context.Background()
@@ -51,6 +62,10 @@ func (s *Scraper) CreateScraper(regions []string, serviceCode string) func(logge
 			}
 
 			metricList = append(metricList, metrics...)
+		}
+		err = cacheStore.Write(metricList)
+		if err != nil {
+			l.Debug("Cache Write error", "error", err)
 		}
 		l.Info("Metrics Scrapped",
 			"duration", time.Since(start),

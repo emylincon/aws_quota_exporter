@@ -37,10 +37,10 @@ var logGroup = slog.Group("request",
 
 // PrometheusMetric data structure
 type PrometheusMetric struct {
-	Name   string
-	Labels map[string]string
-	Value  float64
-	Desc   string
+	Name   string            `json:"name"`
+	Labels map[string]string `json:"labels"`
+	Value  float64           `json:"value"`
+	Desc   string            `json:"desc"`
 }
 
 // PrometheusCollector Data structure
