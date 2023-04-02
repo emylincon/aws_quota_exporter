@@ -4,8 +4,8 @@ version: '3.8'
 services:
   aws_quota_exporter:
     build:
-      context: ./docker
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: docker/Dockerfile
     ports:
       - 10100:10100
     volumes:
@@ -13,6 +13,7 @@ services:
       - ${AWS_FOLDER}:/root/.aws/
     environment:
       - CONFIG_FILE=/etc/aws_quota_exporter/config.yml
+      - AWS_PROFILE=${AWS_PROFILE}
 
   prometheus:
     image: prom/prometheus

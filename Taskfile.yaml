@@ -7,3 +7,7 @@ tasks:
     cmds:
       - export AWS_PROFILE=emeka;go run . --prom.port=10100 --config.file=config.yml.test
     silent: true
+  retest:
+    cmds:
+      - goreleaser release --snapshot --rm-dist
+    silent: true

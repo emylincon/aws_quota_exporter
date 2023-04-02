@@ -12,4 +12,6 @@ WORKDIR /aws_quota_exporter
 
 COPY --from=builder /aws_quota_exporter/aws_quota_exporter ./
 
+EXPOSE 10100
+
 CMD ./aws_quota_exporter --prom.port=10100 --config.file=${CONFIG_FILE}
