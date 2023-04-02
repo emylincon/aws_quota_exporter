@@ -76,7 +76,7 @@ func (p *PrometheusCollector) Describe(descs chan<- *prometheus.Desc) {
 func (p *PrometheusCollector) Collect(metrics chan<- prometheus.Metric) {
 	p.mutex.Lock() // To protect metrics from concurrent collects.
 	defer p.mutex.Unlock()
-	p.logger.Info("Collecting metrics")
+
 	data, err := p.getMetrics(p.logger)
 	if err != nil {
 		desc := prometheus.NewDesc(
@@ -91,6 +91,7 @@ func (p *PrometheusCollector) Collect(metrics chan<- prometheus.Metric) {
 	for _, metric := range removeDuplicatedMetrics(data) {
 		metrics <- createMetric(metric)
 	}
+
 }
 
 func createDesc(metric *PrometheusMetric) *prometheus.Desc {

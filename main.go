@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/emylincon/aws_quota_exporter/pkg"
 	"github.com/prometheus/client_golang/prometheus"
@@ -44,7 +45,7 @@ func main() {
 	version := "0.0.0"
 
 	logger := NewLogger(*logFormatType).With("version", version)
-
+	start := time.Now()
 	logger.Info("Initializing AWS Quota Exporter")
 
 	// Handle keyboard interrupt
@@ -63,6 +64,7 @@ func main() {
 	}
 
 	reg := prometheus.NewRegistry()
+	logger.Info("Registring scrappers")
 	for _, qc := range qcl.Jobs {
 		pc := pkg.NewPrometheusCollector(logger, s.CreateScraper(qc.Regions, qc.ServiceCode))
 		reg.MustRegister(pc)
@@ -88,9 +90,11 @@ func main() {
 		_, _ = w.Write([]byte("ok"))
 	})
 
+	logger.Info("Initialization of AWS Quota Exporter completed successfully", "duration", time.Since(start))
+
 	// Start listening for HTTP connections.
 	port := fmt.Sprintf(":%d", *promPort)
-	logger.Info("Starting AWS Quota Exporter", "address", fmt.Sprintf(":%v/metrics", port))
+	logger.Info("Starting AWS Quota Exporter", "address", fmt.Sprintf("%v/metrics", port))
 	if err := http.ListenAndServe(port, mux); err != nil {
 		logger.Error("Cannot start AWS Quota Exporter", "error", err)
 	}

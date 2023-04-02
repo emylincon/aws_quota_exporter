@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -30,8 +31,12 @@ func NewScraper() (*Scraper, error) {
 // CreateScraper Scrape Quotas from AWS
 func (s *Scraper) CreateScraper(regions []string, serviceCode string) func(logger *slog.Logger) ([]*PrometheusMetric, error) {
 	return func(logger *slog.Logger) ([]*PrometheusMetric, error) {
-		ctx := context.Background()
+		// logging start metrics collection
+		start := time.Now()
+		l := logger.With("serviceCode", serviceCode, "regions", regions, logGroup)
+		l.Info("Scrapping metrics")
 
+		ctx := context.Background()
 		sclient := sq.NewFromConfig(s.cfg)
 		input := sq.ListServiceQuotasInput{ServiceCode: &serviceCode}
 		metricList := []*PrometheusMetric{}
@@ -39,16 +44,17 @@ func (s *Scraper) CreateScraper(regions []string, serviceCode string) func(logge
 		for _, region := range regions {
 			metrics, err := getServiceQuotas(ctx, region, &input, sclient)
 			if err != nil {
-				logger.ErrorCtx(ctx, "Failed to get service quotas",
-					logGroup,
+				l.ErrorCtx(ctx, "Failed to get service quotas",
 					"error", err,
-					"serviceCode", serviceCode,
-					"region", region)
+				)
 				return nil, err
 			}
 
 			metricList = append(metricList, metrics...)
 		}
+		l.Info("Metrics Scrapped",
+			"duration", time.Since(start),
+		)
 		return metricList, nil
 
 	}
