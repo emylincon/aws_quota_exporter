@@ -1,15 +1,16 @@
-package scrape
+package pkg
 
 // Documentation for interacting with aws-sdk-go-v2 https://aws.github.io/aws-sdk-go-v2/docs/getting-started/
 import (
 	"context"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	sq "github.com/aws/aws-sdk-go-v2/service/servicequotas"
-	"github.com/emylincon/aws_quota_exporter/pkg"
+	"golang.org/x/exp/slog"
 )
 
 // Scraper struct
@@ -28,23 +29,32 @@ func NewScraper() (*Scraper, error) {
 }
 
 // CreateScraper Scrape Quotas from AWS
-func (s *Scraper) CreateScraper(regions []string, serviceCode string) func() ([]*pkg.PrometheusMetric, error) {
-	return func() ([]*pkg.PrometheusMetric, error) {
-		ctx := context.Background()
+func (s *Scraper) CreateScraper(regions []string, serviceCode string) func(logger *slog.Logger) ([]*PrometheusMetric, error) {
+	return func(logger *slog.Logger) ([]*PrometheusMetric, error) {
+		// logging start metrics collection
+		start := time.Now()
+		l := logger.With("serviceCode", serviceCode, "regions", regions, logGroup)
+		l.Info("Scrapping metrics")
 
+		ctx := context.Background()
 		sclient := sq.NewFromConfig(s.cfg)
 		input := sq.ListServiceQuotasInput{ServiceCode: &serviceCode}
-		metricList := []*pkg.PrometheusMetric{}
+		metricList := []*PrometheusMetric{}
 
 		for _, region := range regions {
 			metrics, err := getServiceQuotas(ctx, region, &input, sclient)
 			if err != nil {
-				fmt.Printf("Failed to get service quotas: %v\n", err)
+				l.ErrorCtx(ctx, "Failed to get service quotas",
+					"error", err,
+				)
 				return nil, err
 			}
 
 			metricList = append(metricList, metrics...)
 		}
+		l.Info("Metrics Scrapped",
+			"duration", time.Since(start),
+		)
 		return metricList, nil
 
 	}
@@ -52,12 +62,12 @@ func (s *Scraper) CreateScraper(regions []string, serviceCode string) func() ([]
 }
 
 // Transform to prometheus format
-func Transform(quotas *sq.ListServiceQuotasOutput, defaultQuotas *sq.ListAWSDefaultServiceQuotasOutput, region string) ([]*pkg.PrometheusMetric, error) {
-	metrics := []*pkg.PrometheusMetric{}
+func Transform(quotas *sq.ListServiceQuotasOutput, defaultQuotas *sq.ListAWSDefaultServiceQuotasOutput, region string) ([]*PrometheusMetric, error) {
+	metrics := []*PrometheusMetric{}
 	check := map[string]bool{}
 	for _, v := range quotas.Quotas {
 		metricName := createMetricName(*v.ServiceCode, *v.QuotaName)
-		metric := &pkg.PrometheusMetric{
+		metric := &PrometheusMetric{
 			Name:   metricName,
 			Value:  *v.Value,
 			Labels: map[string]string{"adjustable": strconv.FormatBool(v.Adjustable), "global_quota": strconv.FormatBool(v.GlobalQuota), "unit": *v.Unit, "region": region},
@@ -69,7 +79,7 @@ func Transform(quotas *sq.ListServiceQuotasOutput, defaultQuotas *sq.ListAWSDefa
 	for _, d := range defaultQuotas.Quotas {
 		metricName := createMetricName(*d.ServiceCode, *d.QuotaName)
 		if _, ok := check[metricName]; !ok {
-			metric := &pkg.PrometheusMetric{
+			metric := &PrometheusMetric{
 				Name:   metricName,
 				Value:  *d.Value,
 				Labels: map[string]string{"adjustable": strconv.FormatBool(d.Adjustable), "global_quota": strconv.FormatBool(d.GlobalQuota), "unit": *d.Unit, "region": region},
@@ -82,10 +92,10 @@ func Transform(quotas *sq.ListServiceQuotasOutput, defaultQuotas *sq.ListAWSDefa
 }
 
 func createMetricName(serviceCode, quotaName string) string {
-	return fmt.Sprintf("aws_quota_%s_%s", serviceCode, pkg.PromString(quotaName))
+	return fmt.Sprintf("aws_quota_%s_%s", serviceCode, PromString(quotaName))
 }
 
-func getServiceQuotas(ctx context.Context, region string, sqInput *sq.ListServiceQuotasInput, client *sq.Client) ([]*pkg.PrometheusMetric, error) {
+func getServiceQuotas(ctx context.Context, region string, sqInput *sq.ListServiceQuotasInput, client *sq.Client) ([]*PrometheusMetric, error) {
 	opts := func(o *sq.Options) { o.Region = region }
 
 	// Get applied Quotas

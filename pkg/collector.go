@@ -1,7 +1,6 @@
 package pkg
 
 import (
-	"fmt"
 	"regexp"
 	"sort"
 	"strings"
@@ -9,6 +8,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/model"
+	"golang.org/x/exp/slog"
 )
 
 var replacer = strings.NewReplacer(
@@ -30,6 +30,10 @@ var replacer = strings.NewReplacer(
 	")", "",
 )
 var splitRegexp = regexp.MustCompile(`([a-z0-9])([A-Z])`)
+var logGroup = slog.Group("request",
+	slog.String("method", "GET"),
+	slog.String("url", "/metrics"),
+)
 
 // PrometheusMetric data structure
 type PrometheusMetric struct {
@@ -42,22 +46,25 @@ type PrometheusMetric struct {
 // PrometheusCollector Data structure
 type PrometheusCollector struct {
 	mutex      sync.RWMutex
-	getMetrics func() ([]*PrometheusMetric, error)
+	logger     *slog.Logger
+	getMetrics func(logger *slog.Logger) ([]*PrometheusMetric, error)
 }
 
 // NewPrometheusCollector is PrometheusCollector constructor
-func NewPrometheusCollector(getMetrics func() ([]*PrometheusMetric, error)) *PrometheusCollector {
+func NewPrometheusCollector(logger *slog.Logger, getMetrics func(logger *slog.Logger) ([]*PrometheusMetric, error)) *PrometheusCollector {
 	return &PrometheusCollector{
 		getMetrics: getMetrics,
+		logger:     logger,
+		mutex:      sync.RWMutex{},
 	}
 }
 
 // Describe metrics
 func (p *PrometheusCollector) Describe(descs chan<- *prometheus.Desc) {
-	data, err := p.getMetrics()
+	data, err := p.getMetrics(p.logger)
 	if err != nil {
 		descs <- prometheus.NewInvalidDesc(err)
-		fmt.Println("Error getting metrics:", err)
+		p.logger.Error("Error getting metrics", logGroup, "error", err)
 		return
 	}
 	for _, metric := range removeDuplicatedMetrics(data) {
@@ -69,7 +76,8 @@ func (p *PrometheusCollector) Describe(descs chan<- *prometheus.Desc) {
 func (p *PrometheusCollector) Collect(metrics chan<- prometheus.Metric) {
 	p.mutex.Lock() // To protect metrics from concurrent collects.
 	defer p.mutex.Unlock()
-	data, err := p.getMetrics()
+
+	data, err := p.getMetrics(p.logger)
 	if err != nil {
 		desc := prometheus.NewDesc(
 			"place_holder_prometheus_collector",
@@ -77,12 +85,13 @@ func (p *PrometheusCollector) Collect(metrics chan<- prometheus.Metric) {
 			[]string{},
 			nil,
 		)
-		fmt.Println("Error collecting metrics:", err)
+		p.logger.Error("Error collecting metrics", logGroup, "error", err)
 		metrics <- prometheus.NewInvalidMetric(desc, err)
 	}
 	for _, metric := range removeDuplicatedMetrics(data) {
 		metrics <- createMetric(metric)
 	}
+
 }
 
 func createDesc(metric *PrometheusMetric) *prometheus.Desc {
