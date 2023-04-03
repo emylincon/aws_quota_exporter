@@ -9,5 +9,5 @@ tasks:
     silent: true
   retest:
     cmds:
-      - goreleaser release --snapshot --rm-dist
+      - goreleaser release --snapshot --clean
     silent: true
