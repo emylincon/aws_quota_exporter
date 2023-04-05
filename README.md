@@ -23,6 +23,11 @@ jobs:
       - us-west-1
       - us-east-1
 ```
+## Docker Image Usage
+Using the docker image avaliable on [dockerhub](https://hub.docker.com/r/ugwuanyi/aqe)
+```bash
+docker run --name my-aqe -v /path/to/config.yml:/aqe/config.yml -d -p 10100:10100 -e CONFIG_FILE=/aqe/config.yml -e AWS_ACCESS_KEY=111222 -e AWS_SECRET_KEY=secret ugwuanyi/aqe:latest
+```
 # AWS Authentication
 This program relies on the `AWS SDK for Go V2` for handling authentication.
 The AWS SDK uses its default credential chain to find AWS credentials. This default credential chain looks for credentials in the following order:
