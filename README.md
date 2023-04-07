@@ -6,6 +6,11 @@
 # aws_quota_exporter
 Export AWS quotas on Prometheus
 
+# Why?
+Some of the aws service quotas are adjustable per region. If this happens then the quotas per region would no longer be homogeneous. This creates a rift when creating monitoring or alerting logic in prometheus as this sometimes cannot be hardcorded.
+
+`aws_quota_exporter` aim to export these quotas in prometheus to solve the above problem. At the time of writing, this feature is not currently available in the [`prometheus yace exporter`](https://github.com/nerdswords/yet-another-cloudwatch-exporter/issues/138)
+
 # Usage
 * Run the following command
 ```
@@ -22,6 +27,11 @@ jobs:
     regions:
       - us-west-1
       - us-east-1
+```
+## Service Codes
+The `serviceCode` is the AWS service identifier. To identify the `serviceCode` for a particular service, use the following aws cli command:
+```bash
+aws service-quotas list-services
 ```
 ## Docker Image Usage
 Using the docker image avaliable on [dockerhub](https://hub.docker.com/r/ugwuanyi/aqe)
