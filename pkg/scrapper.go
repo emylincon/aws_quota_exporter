@@ -29,13 +29,13 @@ func NewScraper() (*Scraper, error) {
 }
 
 // CreateScraper Scrape Quotas from AWS
-func (s *Scraper) CreateScraper(regions []string, serviceCode string, cacheExpiryDuration time.Duration) func(logger *slog.Logger) ([]*PrometheusMetric, error) {
+func (s *Scraper) CreateScraper(regions []string, serviceCode string, cacheExpiryDuration time.Duration) func() ([]*PrometheusMetric, error) {
 	// create new cache for service
 	cacheStore := NewCache(serviceCode+".json", cacheExpiryDuration)
 
-	return func(logger *slog.Logger) ([]*PrometheusMetric, error) {
+	return func() ([]*PrometheusMetric, error) {
 		// logging start metrics collection
-		l := logger.With("serviceCode", serviceCode, "regions", regions, logGroup)
+		l := slog.With("serviceCode", serviceCode, "regions", regions, logGroup)
 		start := time.Now()
 		cacheData, err := cacheStore.Read()
 		if err == nil {
