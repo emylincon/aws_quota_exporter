@@ -45,26 +45,24 @@ type PrometheusMetric struct {
 
 // PrometheusCollector Data structure
 type PrometheusCollector struct {
-	mutex      sync.RWMutex
-	logger     *slog.Logger
-	getMetrics func(logger *slog.Logger) ([]*PrometheusMetric, error)
+	mutex      *sync.RWMutex
+	getMetrics func() ([]*PrometheusMetric, error)
 }
 
 // NewPrometheusCollector is PrometheusCollector constructor
-func NewPrometheusCollector(logger *slog.Logger, getMetrics func(logger *slog.Logger) ([]*PrometheusMetric, error)) *PrometheusCollector {
+func NewPrometheusCollector(getMetrics func() ([]*PrometheusMetric, error)) *PrometheusCollector {
 	return &PrometheusCollector{
 		getMetrics: getMetrics,
-		logger:     logger,
-		mutex:      sync.RWMutex{},
+		mutex:      new(sync.RWMutex),
 	}
 }
 
 // Describe metrics
 func (p *PrometheusCollector) Describe(descs chan<- *prometheus.Desc) {
-	data, err := p.getMetrics(p.logger)
+	data, err := p.getMetrics()
 	if err != nil {
 		descs <- prometheus.NewInvalidDesc(err)
-		p.logger.Error("Error getting metrics", logGroup, "error", err)
+		slog.Error("Error getting metrics", logGroup, "error", err)
 		return
 	}
 	for _, metric := range removeDuplicatedMetrics(data) {
@@ -77,7 +75,7 @@ func (p *PrometheusCollector) Collect(metrics chan<- prometheus.Metric) {
 	p.mutex.Lock() // To protect metrics from concurrent collects.
 	defer p.mutex.Unlock()
 
-	data, err := p.getMetrics(p.logger)
+	data, err := p.getMetrics()
 	if err != nil {
 		desc := prometheus.NewDesc(
 			"place_holder_prometheus_collector",
@@ -85,7 +83,7 @@ func (p *PrometheusCollector) Collect(metrics chan<- prometheus.Metric) {
 			[]string{},
 			nil,
 		)
-		p.logger.Error("Error collecting metrics", logGroup, "error", err)
+		slog.Error("Error collecting metrics", logGroup, "error", err)
 		metrics <- prometheus.NewInvalidMetric(desc, err)
 	}
 	for _, metric := range removeDuplicatedMetrics(data) {

@@ -5,7 +5,7 @@ version: "3"
 tasks:
   start:
     cmds:
-      - export AWS_PROFILE=emeka;go run . --prom.port=10100 --config.file=config.yml.test
+      - export AWS_PROFILE=emeka;go run . --prom.port=10100 --config.file=config.yml.test --log.level=debug --log.format=json
     silent: true
   retest:
     cmds:

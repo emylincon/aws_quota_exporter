@@ -15,30 +15,24 @@ import (
 	"golang.org/x/exp/slog"
 )
 
-func closeHandler(logger *slog.Logger) {
+func closeHandler() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 	signal.Notify(c, syscall.SIGTERM)
 	go func() {
 		<-c
-		logger.Warn("Shutting down", "signal", "Keyboard Interrupt", "input", "Ctrl+C")
+		slog.Warn("Shutting down", "signal", "Keyboard Interrupt", "input", "Ctrl+C")
 		os.RemoveAll(pkg.CacheFolder)
 		os.Exit(0)
 	}()
-}
-
-// NewLogger returns a logger
-func NewLogger(formatType string) *slog.Logger {
-	if formatType == "json" {
-		return slog.New(slog.NewJSONHandler(os.Stdout))
-	}
-	return slog.New(slog.NewTextHandler(os.Stdout))
 }
 
 func main() {
 	var (
 		configFile    = flag.String("config.file", "config.yaml", "Path to configuration file. Defaults to config.yaml")
 		logFormatType = flag.String("log.format", "text", "Format of log messages (text or json). Defaults to text")
+		logFolder     = flag.String("log.folder", "", "Folder to store logfiles. logs to console if not specified")
+		logLevel      = flag.String("log.level", "INFO", "Log level to log from (DEBUG|INFO|WARN|ERROR). Default is INFO")
 		promPort      = flag.Int("prom.port", 10100, "port to expose prometheus metrics, Defaults to 10100")
 		cacheDuration = flag.Duration("cache.duration", 300, "cache expiry time. Defaults to 300 seconds")
 	)
@@ -46,37 +40,38 @@ func main() {
 
 	version := "0.0.0"
 
-	logger := NewLogger(*logFormatType).With("version", version)
+	logger := pkg.NewLogger(*logFormatType, *logFolder, *logLevel).With("version", version)
+	slog.SetDefault(logger)
 	start := time.Now()
-	logger.Info("Initializing AWS Quota Exporter")
+	slog.Info("Initializing AWS Quota Exporter")
 
 	// Handle keyboard interrupt
-	closeHandler(logger)
+	closeHandler()
 
 	// check if cache folder exists
 	if _, err := os.Stat(pkg.CacheFolder); os.IsNotExist(err) {
 		err = os.MkdirAll(pkg.CacheFolder, 0755)
 		if err != nil {
-			logger.Error("Error creating cache folder", "error", err)
+			slog.Error("Error creating cache folder", "error", err)
 		}
 	}
 
 	// Make Prometheus client aware of our collectors.
 	qcl, err := pkg.NewQuotaConfig(*configFile)
 	if err != nil {
-		logger.Error(fmt.Sprintf("Error parsing '%s'", *configFile), "error", err)
+		slog.Error(fmt.Sprintf("Error parsing '%s'", *configFile), "error", err)
 		return
 	}
 	s, err := pkg.NewScraper()
 	if err != nil {
-		logger.Error("Error creating scraper", "error", err)
+		slog.Error("Error creating scraper", "error", err)
 		return
 	}
 
 	reg := prometheus.NewRegistry()
-	logger.Info("Registring scrappers")
+	slog.Info("Registring scrappers")
 	for _, qc := range qcl.Jobs {
-		pc := pkg.NewPrometheusCollector(logger, s.CreateScraper(qc.Regions, qc.ServiceCode, *cacheDuration))
+		pc := pkg.NewPrometheusCollector(s.CreateScraper(qc.Regions, qc.ServiceCode, *cacheDuration))
 		reg.MustRegister(pc)
 	}
 
@@ -100,12 +95,12 @@ func main() {
 		_, _ = w.Write([]byte("ok"))
 	})
 
-	logger.Info("Initialization of AWS Quota Exporter completed successfully", "duration", time.Since(start))
+	slog.Info("Initialization of AWS Quota Exporter completed successfully", "duration", time.Since(start))
 
 	// Start listening for HTTP connections.
 	port := fmt.Sprintf(":%d", *promPort)
-	logger.Info("Starting AWS Quota Exporter", "address", fmt.Sprintf("%v/metrics", port))
+	slog.Info("Starting AWS Quota Exporter", "address", fmt.Sprintf("%v/metrics", port))
 	if err := http.ListenAndServe(port, mux); err != nil {
-		logger.Error("Cannot start AWS Quota Exporter", "error", err)
+		slog.Error("Cannot start AWS Quota Exporter", "error", err)
 	}
 }
