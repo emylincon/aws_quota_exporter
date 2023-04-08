@@ -9,11 +9,11 @@ services:
     ports:
       - 10100:10100
     volumes:
-      - ./docker/aws_quota_exporter/config.yml:/etc/aws_quota_exporter/config.yml
-      - ${AWS_FOLDER}:/root/.aws/
+      - ./docker/aws_quota_exporter/config.yml:/etc/aqe/config.yml
+      - ${AWS_FOLDER}:/exporter/.aws/
     environment:
-      - CONFIG_FILE=/etc/aws_quota_exporter/config.yml
       - AWS_PROFILE=${AWS_PROFILE}
+    command: --log.level=debug --log.format=text
 
   prometheus:
     image: prom/prometheus

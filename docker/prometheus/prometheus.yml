@@ -16,7 +16,7 @@ scrape_configs:
   - job_name: "aws_quota_exporter"
 
     # Override the global default and scrape targets from this job every 5 seconds.
-    scrape_interval: 300s
+    scrape_interval: 15s
 
     static_configs:
       - targets: ["aws_quota_exporter:10100"]

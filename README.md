@@ -28,6 +28,26 @@ jobs:
       - us-west-1
       - us-east-1
 ```
+## Help
+* View program help:
+```bash
+$ ./aws_quota_exporter -h
+```
+```
+Usage of ./aws_quota_exporter:
+  -cache.duration duration
+        cache expiry time. Defaults to 300 seconds (default 300ns)
+  -config.file string
+        Path to configuration file. Defaults to config.yaml (default "/etc/aqe/config.yml")
+  -log.folder string
+        Folder to store logfiles. logs to console if not specified
+  -log.format string
+        Format of log messages (text or json). Defaults to text (default "text")
+  -log.level string
+        Log level to log from (DEBUG|INFO|WARN|ERROR). Default is INFO (default "INFO")
+  -prom.port int
+        port to expose prometheus metrics, Defaults to 10100 (default 10100)
+```
 ## Service Codes
 The `serviceCode` is the AWS service identifier. To identify the `serviceCode` for a particular service, use the following aws cli command:
 ```bash
@@ -103,6 +123,10 @@ The exporter requires the AWS managed policy `ServiceQuotasReadOnlyAccess`. This
 }
 ```
 *Please Remove permissions that you would not use*
+
+# Grafan Dashboard
+Visualizing Quotas
+![Dashboard](img/grafana.png)
 
 # Useful resources
 * include default [port](https://github.com/prometheus/prometheus/wiki/Default-port-allocations) here when finished
