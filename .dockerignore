@@ -1,6 +1,6 @@
 .github
-docker/
-*ocker*
+docker/grafana
+docker/prometheus
 Taskfile
 README
 .pre-commit*

@@ -1,17 +1,26 @@
 FROM golang:alpine as builder
 
-WORKDIR /aws_quota_exporter
+WORKDIR /opt
 
 COPY . .
 
-RUN go build .
+RUN go build -o aqe .
 
-FROM alpine
+FROM alpine:latest
 
-WORKDIR /aws_quota_exporter
+RUN apk --no-cache add ca-certificates && \
+    addgroup -g 1000 exporter && \
+    adduser -u 1000 -D -G exporter exporter -h /exporter
 
-COPY --from=builder /aws_quota_exporter/aws_quota_exporter ./
+WORKDIR /exporter
+
+COPY --from=builder /opt/aqe /usr/local/bin/aqe
+COPY ./docker/aws_quota_exporter/config.yml /etc/aqe/config.yml
 
 EXPOSE 10100
 
-CMD ./aws_quota_exporter --prom.port=10100 --config.file=${CONFIG_FILE}
+USER exporter
+
+ENTRYPOINT [ "aqe" ]
+
+CMD ["--prom.port=10100"]

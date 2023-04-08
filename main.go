@@ -29,7 +29,7 @@ func closeHandler() {
 
 func main() {
 	var (
-		configFile    = flag.String("config.file", "config.yaml", "Path to configuration file. Defaults to config.yaml")
+		configFile    = flag.String("config.file", "/etc/aqe/config.yml", "Path to configuration file. Defaults to config.yaml")
 		logFormatType = flag.String("log.format", "text", "Format of log messages (text or json). Defaults to text")
 		logFolder     = flag.String("log.folder", "", "Folder to store logfiles. logs to console if not specified")
 		logLevel      = flag.String("log.level", "INFO", "Log level to log from (DEBUG|INFO|WARN|ERROR). Default is INFO")
