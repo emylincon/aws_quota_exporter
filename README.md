@@ -124,7 +124,7 @@ The exporter requires the AWS managed policy `ServiceQuotasReadOnlyAccess`. This
 ```
 *Please Remove permissions that you would not use*
 
-# Grafan Dashboard
+# Grafana Dashboard
 Visualizing Quotas
 ![Dashboard](img/grafana.png)
 
