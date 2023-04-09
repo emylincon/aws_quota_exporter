@@ -43,8 +43,12 @@ func (s *Scraper) CreateScraper(regions []string, serviceCode string, cacheExpir
 				"duration", time.Since(start),
 			)
 			return cacheData, nil
+		} else if err == ErrCacheExpired {
+			l.Debug("Cache Read", "msg", err)
+		} else {
+			l.Debug("Cache Read Error", "error", err)
 		}
-		l.Debug("Cache Read Error", "error", err)
+
 		l.Info("Scrapping metrics")
 
 		ctx := context.Background()
