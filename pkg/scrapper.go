@@ -64,10 +64,11 @@ func (s *Scraper) CreateScraper(regions []string, serviceCode string, cacheExpir
 		input := sq.ListServiceQuotasInput{ServiceCode: &serviceCode, MaxResults: &maxResults}
 		metricList := []*PrometheusMetric{}
 		c := make(chan chanData)
-
+		// create goroutine workers
 		for _, region := range regions {
 			go getServiceQuotas(ctx, region, &input, sclient, c)
 		}
+		// retrieve channel results from goroutines
 		for i := 0; i < len(regions); i++ {
 			data := <-c
 			if data.err != nil {
@@ -132,32 +133,35 @@ func getServiceQuotas(ctx context.Context, region string, sqInput *sq.ListServic
 	var wg sync.WaitGroup
 	var r *sq.ListServiceQuotasOutput
 	var d *sq.ListAWSDefaultServiceQuotasOutput
-	var rErr error
-	var dErr error
+	errs := [2]error{}
 
 	wg.Add(2)
 
 	// Get applied Quotas
 	go func() {
-		r, rErr = getListServiceQuotas(ctx, client, opts, sqInput)
+		r, errs[0] = getListServiceQuotas(ctx, client, opts, sqInput)
 		wg.Done()
 	}()
 
 	// Get default Quotas
 	go func() {
-		d, rErr = getDefaultListServiceQuotas(ctx, client, opts, asqInput)
+		d, errs[1] = getDefaultListServiceQuotas(ctx, client, opts, asqInput)
 		wg.Done()
 	}()
 
 	wg.Wait()
-	if rErr != nil || dErr != nil {
-		data := chanData{
-			metrics: nil,
-			err:     fmt.Errorf("%s %s", rErr.Error(), dErr.Error()),
+	for _, err := range errs {
+		if err != nil {
+			data := chanData{
+				metrics: nil,
+				err:     err,
+			}
+			c <- data
+			return
 		}
-		c <- data
-		return
+
 	}
+
 	m, err := Transform(r, d, region)
 	data := chanData{
 		metrics: m,
