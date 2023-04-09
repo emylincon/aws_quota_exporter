@@ -20,13 +20,15 @@ type Scraper struct {
 
 // NewScraper creates a new Scraper
 func NewScraper() (*Scraper, error) {
-	cfg, err := config.LoadDefaultConfig(context.TODO()) // config.WithRegion("us-west-2")
+	cfg, err := config.LoadDefaultConfig(context.TODO())
 	if err != nil {
 		return &Scraper{}, err
 	}
 
 	return &Scraper{cfg: cfg}, nil
 }
+
+var maxResults int32 = 100
 
 // CreateScraper Scrape Quotas from AWS
 func (s *Scraper) CreateScraper(regions []string, serviceCode string, cacheExpiryDuration time.Duration) func() ([]*PrometheusMetric, error) {
@@ -53,7 +55,7 @@ func (s *Scraper) CreateScraper(regions []string, serviceCode string, cacheExpir
 
 		ctx := context.Background()
 		sclient := sq.NewFromConfig(s.cfg)
-		input := sq.ListServiceQuotasInput{ServiceCode: &serviceCode}
+		input := sq.ListServiceQuotasInput{ServiceCode: &serviceCode, MaxResults: &maxResults}
 		metricList := []*PrometheusMetric{}
 
 		for _, region := range regions {
@@ -122,11 +124,37 @@ func getServiceQuotas(ctx context.Context, region string, sqInput *sq.ListServic
 	if err != nil {
 		return nil, err
 	}
+	for {
+		if r.NextToken == nil {
+			break
+		}
+		sqInput.NextToken = r.NextToken
+		rn, err := client.ListServiceQuotas(ctx, sqInput, opts)
+		if err != nil {
+			return nil, err
+		}
+		r.Quotas = append(r.Quotas, rn.Quotas...)
+		r.NextToken = rn.NextToken
 
+	}
+	asqInput := &sq.ListAWSDefaultServiceQuotasInput{ServiceCode: sqInput.ServiceCode, MaxResults: &maxResults}
 	// Get default Quotas
-	d, err := client.ListAWSDefaultServiceQuotas(ctx, &sq.ListAWSDefaultServiceQuotasInput{ServiceCode: sqInput.ServiceCode}, opts)
+	d, err := client.ListAWSDefaultServiceQuotas(ctx, asqInput, opts)
 	if err != nil {
 		return nil, err
+	}
+	for {
+		if d.NextToken == nil {
+			break
+		}
+		asqInput.NextToken = d.NextToken
+		dn, err := client.ListServiceQuotas(ctx, sqInput, opts)
+		if err != nil {
+			return nil, err
+		}
+		r.Quotas = append(d.Quotas, dn.Quotas...)
+		r.NextToken = dn.NextToken
+
 	}
 	return Transform(r, d, region)
 }
