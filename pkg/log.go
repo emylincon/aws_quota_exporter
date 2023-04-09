@@ -52,7 +52,7 @@ func (lw *LogWriter) Write(b []byte) (n int, err error) {
 }
 
 func (lw *LogWriter) setlogFile() {
-	lw.logFile = fmt.Sprintf("aws-quota-exporter-%s.log", time.Now().Format("01-02-2006"))
+	lw.logFile = fmt.Sprintf("aws-quota-exporter-%s.log", time.Now().Format("02-01-2006"))
 	lw.expires = time.Now().Add(time.Hour * 24)
 }
 
