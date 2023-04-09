@@ -14,8 +14,12 @@ type Cache struct {
 	Expires  time.Time
 }
 
-// CacheFolder is a folder to store cache files
-var CacheFolder = "/tmp/aws_quota_exporter_cache/"
+var (
+	// ErrCacheExpired is returned when cache expires
+	ErrCacheExpired = errors.New("Cache expired")
+	// CacheFolder is a folder to store cache files
+	CacheFolder = "/tmp/aws_quota_exporter_cache/"
+)
 
 // NewCache creates a new Cache instance
 func NewCache(fileName string, lifeTime time.Duration) *Cache {
@@ -29,7 +33,7 @@ func NewCache(fileName string, lifeTime time.Duration) *Cache {
 // Read reads the contents of the cache file
 func (c *Cache) Read() ([]*PrometheusMetric, error) {
 	if time.Now().After(c.Expires) {
-		return nil, errors.New("Cache expired")
+		return nil, ErrCacheExpired
 	}
 	byteData, err := os.ReadFile(c.FileName)
 	if err != nil {
