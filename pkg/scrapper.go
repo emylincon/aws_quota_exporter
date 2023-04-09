@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -16,6 +17,11 @@ import (
 // Scraper struct
 type Scraper struct {
 	cfg aws.Config
+}
+
+type chanData struct {
+	metrics []*PrometheusMetric
+	err     error
 }
 
 // NewScraper creates a new Scraper
@@ -57,17 +63,22 @@ func (s *Scraper) CreateScraper(regions []string, serviceCode string, cacheExpir
 		sclient := sq.NewFromConfig(s.cfg)
 		input := sq.ListServiceQuotasInput{ServiceCode: &serviceCode, MaxResults: &maxResults}
 		metricList := []*PrometheusMetric{}
-
+		c := make(chan chanData)
+		// create goroutine workers
 		for _, region := range regions {
-			metrics, err := getServiceQuotas(ctx, region, &input, sclient)
-			if err != nil {
+			go getServiceQuotas(ctx, region, &input, sclient, c)
+		}
+		// retrieve channel results from goroutines
+		for i := 0; i < len(regions); i++ {
+			data := <-c
+			if data.err != nil {
 				l.ErrorCtx(ctx, "Failed to get service quotas",
 					"error", err,
 				)
 				return nil, err
 			}
 
-			metricList = append(metricList, metrics...)
+			metricList = append(metricList, data.metrics...)
 		}
 		err = cacheStore.Write(metricList)
 		if err != nil {
@@ -116,10 +127,51 @@ func createMetricName(serviceCode, quotaName string) string {
 	return fmt.Sprintf("aws_quota_%s_%s", serviceCode, PromString(quotaName))
 }
 
-func getServiceQuotas(ctx context.Context, region string, sqInput *sq.ListServiceQuotasInput, client *sq.Client) ([]*PrometheusMetric, error) {
+func getServiceQuotas(ctx context.Context, region string, sqInput *sq.ListServiceQuotasInput, client *sq.Client, c chan chanData) {
 	opts := func(o *sq.Options) { o.Region = region }
+	asqInput := &sq.ListAWSDefaultServiceQuotasInput{ServiceCode: sqInput.ServiceCode, MaxResults: &maxResults}
+	var wg sync.WaitGroup
+	var r *sq.ListServiceQuotasOutput
+	var d *sq.ListAWSDefaultServiceQuotasOutput
+	errs := [2]error{}
+
+	wg.Add(2)
 
 	// Get applied Quotas
+	go func() {
+		r, errs[0] = getListServiceQuotas(ctx, client, opts, sqInput)
+		wg.Done()
+	}()
+
+	// Get default Quotas
+	go func() {
+		d, errs[1] = getDefaultListServiceQuotas(ctx, client, opts, asqInput)
+		wg.Done()
+	}()
+
+	wg.Wait()
+	for _, err := range errs {
+		if err != nil {
+			data := chanData{
+				metrics: nil,
+				err:     err,
+			}
+			c <- data
+			return
+		}
+
+	}
+
+	m, err := Transform(r, d, region)
+	data := chanData{
+		metrics: m,
+		err:     err,
+	}
+	c <- data
+}
+
+func getListServiceQuotas(ctx context.Context, client *sq.Client, opts func(o *sq.Options), sqInput *sq.ListServiceQuotasInput) (*sq.ListServiceQuotasOutput, error) {
+
 	r, err := client.ListServiceQuotas(ctx, sqInput, opts)
 	if err != nil {
 		return nil, err
@@ -137,24 +189,27 @@ func getServiceQuotas(ctx context.Context, region string, sqInput *sq.ListServic
 		r.NextToken = rn.NextToken
 
 	}
-	asqInput := &sq.ListAWSDefaultServiceQuotasInput{ServiceCode: sqInput.ServiceCode, MaxResults: &maxResults}
-	// Get default Quotas
-	d, err := client.ListAWSDefaultServiceQuotas(ctx, asqInput, opts)
+	return r, nil
+}
+
+func getDefaultListServiceQuotas(ctx context.Context, client *sq.Client, opts func(o *sq.Options), sqInput *sq.ListAWSDefaultServiceQuotasInput) (*sq.ListAWSDefaultServiceQuotasOutput, error) {
+
+	r, err := client.ListAWSDefaultServiceQuotas(ctx, sqInput, opts)
 	if err != nil {
 		return nil, err
 	}
 	for {
-		if d.NextToken == nil {
+		if r.NextToken == nil {
 			break
 		}
-		asqInput.NextToken = d.NextToken
-		dn, err := client.ListServiceQuotas(ctx, sqInput, opts)
+		sqInput.NextToken = r.NextToken
+		rn, err := client.ListAWSDefaultServiceQuotas(ctx, sqInput, opts)
 		if err != nil {
 			return nil, err
 		}
-		r.Quotas = append(d.Quotas, dn.Quotas...)
-		r.NextToken = dn.NextToken
+		r.Quotas = append(r.Quotas, rn.Quotas...)
+		r.NextToken = rn.NextToken
 
 	}
-	return Transform(r, d, region)
+	return r, nil
 }
