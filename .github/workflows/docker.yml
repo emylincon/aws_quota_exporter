@@ -3,11 +3,10 @@ name: docker
 on:
   push:
     branches: ["main"]
-  pull_request:
-    branches: ["main"]
 
 env:
   IMAGE_NAME: ugwuanyi/aqe
+  TAG: main
 
 jobs:
   buildDockerImage:
@@ -30,6 +29,4 @@ jobs:
         run: echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
 
       - name: Build and Publish docker image
-        run: |
-          sha=${{ github.sha }}
-          docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7 -t ${{ env.IMAGE_NAME }}:${sha:0:5} -f docker/Dockerfile --push .
+        run: docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7 -t ${{ env.IMAGE_NAME }}:${{ env.TAG }} -f docker/Dockerfile --push .
