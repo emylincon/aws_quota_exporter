@@ -32,4 +32,4 @@ jobs:
       - name: Build and Publish docker image
         run: |
           sha=${{ github.sha }}
-          docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7 -t ${{ env.IMAGE_NAME }}:${sha:0:5} --push .
+          docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7 -t ${{ env.IMAGE_NAME }}:${sha:0:5} -f docker/Dockerfile --push .
