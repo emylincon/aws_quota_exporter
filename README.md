@@ -56,7 +56,7 @@ aws service-quotas list-services
 ## Docker Image Usage
 Using the docker image avaliable on [dockerhub](https://hub.docker.com/r/ugwuanyi/aqe)
 ```bash
-docker run --name my-aqe -d -p 10100:10100 -e AWS_ACCESS_KEY=111222 -e AWS_SECRET_KEY=secret ugwuanyi/aqe:latest
+docker run --name my-aqe -d -p 10100:10100 -e AWS_ACCESS_KEY=111222 -e AWS_SECRET_KEY=secret ugwuanyi/aqe:main
 ```
 # AWS Authentication
 This program relies on the `AWS SDK for Go V2` for handling authentication.
