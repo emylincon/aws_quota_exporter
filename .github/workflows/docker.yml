@@ -3,10 +3,10 @@ name: docker
 on:
   push:
     branches: ["main"]
+    tags: ["*"]
 
 env:
   IMAGE_NAME: ugwuanyi/aqe
-  TAG: main
 
 jobs:
   buildDockerImage:
@@ -28,5 +28,9 @@ jobs:
       - name: Login to DockerHub Registry
         run: echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
 
-      - name: Build and Publish docker image
-        run: docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7 -t ${{ env.IMAGE_NAME }}:${{ env.TAG }} -f docker/Dockerfile --push .
+      - name: Build and Publish docker image for main branch
+        run: docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7 -t ${{ env.IMAGE_NAME }}:${{ github.ref_name }} -f docker/Dockerfile --push .
+
+      - name: Build and Publish docker image for tags
+        if: github.ref_type == 'tag'
+        run: docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7 -t ${{ env.IMAGE_NAME }}:latest -f docker/Dockerfile --push .

@@ -38,21 +38,6 @@ changelog:
     exclude:
       - "^docs:"
       - "^test:"
-
-dockers:
-  - image_templates:
-      - "ugwuanyi/aqe:{{ .Tag }}"
-      - "ugwuanyi/aqe:v{{ .Major }}.{{ .Minor }}"
-      - "ugwuanyi/aqe:latest"
-    use: buildx
-    dockerfile: docker/Dockerfile
-    build_flag_templates:
-      - "--platform=linux/amd64,linux/arm64,linux/arm/v7"
-    extra_files:
-      - "pkg"
-      - "main.go"
-      - "go.mod"
-      - "go.sum"
 # The lines beneath this are called `modelines`. See `:help modeline`
 # Feel free to remove those if you don't want/use them.
 # yaml-language-server: $schema=https://goreleaser.com/static/schema.json
