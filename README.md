@@ -7,9 +7,9 @@
 Export AWS quotas on Prometheus
 
 # Why?
-Some of the aws service quotas are adjustable per region. If this happens then the quotas per region would no longer be homogeneous. This creates a rift when creating monitoring or alerting logic in prometheus as this sometimes cannot be hardcorded.
+A subset of the aws service quotas are labelled `ajustable`. This can be at the account or region level. If some of the quotas are ajusted for some regions, then the quotas per region would no longer be homogeneous. This would cause a rift when creating monitoring or alerting logic in prometheus based on the service quotas.
 
-`aws_quota_exporter` aim to export these quotas in prometheus to solve the above problem. At the time of writing, this feature is not currently available in the [`prometheus yace exporter`](https://github.com/nerdswords/yet-another-cloudwatch-exporter/issues/138)
+The aim of the `aws_quota_exporter` is to export these quotas in prometheus to solve the above problem. At the time of writing, this feature is not currently available in the [`prometheus yace exporter`](https://github.com/nerdswords/yet-another-cloudwatch-exporter/issues/138)
 
 # Usage
 * Run the following command
