@@ -13,7 +13,7 @@ jobs:
 
       # - name: file-changes-1
       #   run: git --no-pager diff --name-only --diff-filter=ACMRT ${{github.event.pull_request.base.sha}} ${{ github.event.pull_request.head.sha }}
-      - name: file-changes-2
-        run: git --no-pager diff --name-only --diff-filter=ACMRT ${{github.event.pull_request.base.sha}} ${{github.sha}}
+      # - name: file-changes-2
+      #   run: git --no-pager diff --name-only --diff-filter=ACMRT ${{github.event.pull_request.base.sha}} ${{github.sha}}
       - name: file-changes-3
         run: git log -m -1 --name-only --pretty="format:" ${{ github.sha }}
