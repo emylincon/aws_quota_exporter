@@ -11,3 +11,11 @@ tasks:
     cmds:
       - goreleaser release --snapshot --clean
     silent: true
+  fuzz:
+    cmds:
+      - go test -fuzz=.
+    silent: true
+  test:
+    cmds:
+      - go test -v ./...
+    silent: true
