@@ -1,6 +1,6 @@
-![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/emylincon/aws_quota_exporter?sort=semver&style=for-the-badge)
-![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/emylincon/aws_quota_exporter/go.yml?branch=main&style=for-the-badge)
-![GitHub](https://img.shields.io/github/license/emylincon/aws_quota_exporter?style=for-the-badge)
+[![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/emylincon/aws_quota_exporter?sort=semver&style=for-the-badge)](https://github.com/emylincon/aws_quota_exporter/releases)
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/emylincon/aws_quota_exporter/go.yml?branch=main&style=for-the-badge)](https://github.com/emylincon/aws_quota_exporter/actions)
+[![GitHub](https://img.shields.io/github/license/emylincon/aws_quota_exporter?style=for-the-badge)](https://github.com/emylincon/aws_quota_exporter/blob/main/LICENSE)
 [![Go Report Card](https://goreportcard.com/badge/github.com/emylincon/aws_quota_exporter?style=for-the-badge)](https://goreportcard.com/report/github.com/emylincon/aws_quota_exporter)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white&style=for-the-badge)](https://github.com/pre-commit/pre-commit)
 # aws_quota_exporter
