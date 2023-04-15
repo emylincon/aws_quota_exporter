@@ -36,17 +36,17 @@ $ ./aws_quota_exporter -h
 ```
 Usage of ./aws_quota_exporter:
   -cache.duration duration
-        cache expiry time. Defaults to 300 seconds (default 300ns)
+        cache expiry time (seconds). (default 300ns)
   -config.file string
-        Path to configuration file. Defaults to config.yaml (default "/etc/aqe/config.yml")
+        Path to configuration file. (default "/etc/aqe/config.yml")
   -log.folder string
-        Folder to store logfiles. logs to console if not specified
+        Folder to store logfiles. logs to stdout if not specified. (default "stdout")
   -log.format string
-        Format of log messages (text or json). Defaults to text (default "text")
+        Format of log messages (text or json). (default "text")
   -log.level string
-        Log level to log from (DEBUG|INFO|WARN|ERROR). Default is INFO (default "INFO")
+        Log level to log from (DEBUG|INFO|WARN|ERROR). (default "INFO")
   -prom.port int
-        port to expose prometheus metrics, Defaults to 10100 (default 10100)
+        port to expose prometheus metrics. (default 10100)
 ```
 ## Service Codes
 The `serviceCode` is the AWS service identifier. To identify the `serviceCode` for a particular service, use the following aws cli command:
@@ -137,4 +137,4 @@ Visualizing Quotas
 
 ## References
 * [yace_exporter](https://github.com/nerdswords/yet-another-cloudwatch-exporter/)
-* [basics-exporter](https://github.com/antonputra/tutorials/blob/main/lessons/141/prometheus-nginx-exporter/)
+* [basic-exporter](https://github.com/antonputra/tutorials/blob/main/lessons/141/prometheus-nginx-exporter/)

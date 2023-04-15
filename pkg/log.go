@@ -76,7 +76,7 @@ func NewLogger(formatType, logFolder, logLevel string) *slog.Logger {
 	logOptions := slog.HandlerOptions{Level: LogLevel}
 	var logwriter io.Writer
 	logwriter = os.Stdout
-	if logFolder != "" {
+	if logFolder != "stdout" {
 		writer, err := NewLogWriter(logFolder)
 		if err != nil {
 			slog.Error("Error creating log folder", "error", err)
