@@ -29,12 +29,12 @@ func closeHandler() {
 
 func main() {
 	var (
-		configFile    = flag.String("config.file", "/etc/aqe/config.yml", "Path to configuration file. Defaults to config.yaml")
-		logFormatType = flag.String("log.format", "text", "Format of log messages (text or json). Defaults to text")
-		logFolder     = flag.String("log.folder", "", "Folder to store logfiles. logs to console if not specified")
-		logLevel      = flag.String("log.level", "INFO", "Log level to log from (DEBUG|INFO|WARN|ERROR). Default is INFO")
-		promPort      = flag.Int("prom.port", 10100, "port to expose prometheus metrics, Defaults to 10100")
-		cacheDuration = flag.Duration("cache.duration", 300, "cache expiry time. Defaults to 300 seconds")
+		configFile    = flag.String("config.file", "/etc/aqe/config.yml", "Path to configuration file.")
+		logFormatType = flag.String("log.format", "text", "Format of log messages (text or json).")
+		logFolder     = flag.String("log.folder", "stdout", "Folder to store logfiles. logs to stdout if not specified.")
+		logLevel      = flag.String("log.level", "INFO", "Log level to log from (DEBUG|INFO|WARN|ERROR).")
+		promPort      = flag.Int("prom.port", 10100, "port to expose prometheus metrics.")
+		cacheDuration = flag.Duration("cache.duration", 300, "cache expiry time (seconds).")
 	)
 	flag.Parse()
 

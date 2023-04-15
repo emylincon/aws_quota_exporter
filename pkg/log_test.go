@@ -25,7 +25,7 @@ func TestNewLogger(t *testing.T) {
 			name: "json_handler_debug",
 			args: args{
 				formatType: "json",
-				logFolder:  "",
+				logFolder:  "stdout",
 				logLevel:   "debug",
 			},
 			want: slog.New(slog.HandlerOptions{Level: LogLevel}.NewJSONHandler(os.Stdout)),
@@ -34,7 +34,7 @@ func TestNewLogger(t *testing.T) {
 			name: "json_handler_info",
 			args: args{
 				formatType: "json",
-				logFolder:  "",
+				logFolder:  "stdout",
 				logLevel:   "info",
 			},
 			want: slog.New(slog.HandlerOptions{Level: LogLevel}.NewJSONHandler(os.Stdout)),
@@ -43,7 +43,7 @@ func TestNewLogger(t *testing.T) {
 			name: "text_handler_debug",
 			args: args{
 				formatType: "text",
-				logFolder:  "",
+				logFolder:  "stdout",
 				logLevel:   "debug",
 			},
 			want: slog.New(slog.HandlerOptions{Level: LogLevel}.NewTextHandler(os.Stdout)),
@@ -52,7 +52,7 @@ func TestNewLogger(t *testing.T) {
 			name: "text_handler_info",
 			args: args{
 				formatType: "text",
-				logFolder:  "",
+				logFolder:  "stdout",
 				logLevel:   "info",
 			},
 			want: slog.New(slog.HandlerOptions{Level: LogLevel}.NewTextHandler(os.Stdout)),
