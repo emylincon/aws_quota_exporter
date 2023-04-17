@@ -73,9 +73,9 @@ func (s *Scraper) CreateScraper(regions []string, serviceCode string, cacheExpir
 			data := <-c
 			if data.err != nil {
 				l.ErrorCtx(ctx, "Failed to get service quotas",
-					"error", err,
+					"error", data.err,
 				)
-				return nil, err
+				return nil, data.err
 			}
 
 			metricList = append(metricList, data.metrics...)
