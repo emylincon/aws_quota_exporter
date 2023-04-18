@@ -2,9 +2,12 @@ package pkg
 
 import (
 	"context"
+	"errors"
 	"reflect"
 	"testing"
+	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 )
 
@@ -33,6 +36,60 @@ func TestNewScraper(t *testing.T) {
 
 			if !reflect.DeepEqual(got.cfg.Region, tt.want.cfg.Region) {
 				t.Errorf("NewScraper() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestScraper_CreateScraper(t *testing.T) {
+	type fields struct {
+		cfg aws.Config
+	}
+	type args struct {
+		regions             []string
+		serviceCode         string
+		cacheExpiryDuration time.Duration
+	}
+	cfg, _ := config.LoadDefaultConfig(context.TODO())
+	failedServiceQuota := errors.New("operation error Service Quotas: ListServiceQuotas, failed to sign request: failed to retrieve credentials: failed to refresh cached credentials, no EC2 IMDS role found, operation error ec2imds: GetMetadata, request canceled, context deadline exceeded")
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    func() ([]*PrometheusMetric, error)
+		wantErr bool
+	}{
+		{
+			name: "test create scrapper",
+			fields: fields{
+				cfg: cfg,
+			},
+			args: args{
+				regions:             []string{"us-west-2"},
+				serviceCode:         "lambda",
+				cacheExpiryDuration: time.Duration(1) * time.Hour,
+			},
+			want: func() ([]*PrometheusMetric, error) {
+				return nil, failedServiceQuota
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &Scraper{
+				cfg: tt.fields.cfg,
+			}
+			got := s.CreateScraper(tt.args.regions, tt.args.serviceCode, tt.args.cacheExpiryDuration)
+			d, derr := got()
+			r, terr := tt.want()
+			if (derr != nil) != tt.wantErr {
+				t.Errorf("Scraper.CreateScraper() error = %v, wantErr %v", derr, tt.wantErr)
+				return
+			}
+
+			if !reflect.DeepEqual(d, r) {
+				t.Errorf("Scraper.CreateScraper() = %v:%v, want %v:%v", d, derr, r, terr)
 			}
 		})
 	}
