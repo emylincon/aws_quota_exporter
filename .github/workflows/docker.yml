@@ -4,9 +4,12 @@ on:
   push:
     branches: ["main"]
     tags: ["*"]
+  pull_request:
+    branches: ["main"]
 
 env:
   IMAGE_NAME: ugwuanyi/aqe
+  TEST_IMAGE: aqe/test
 
 jobs:
   buildDockerImage:
@@ -25,10 +28,18 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
+      - name: Set up docker testing tool
+        run: curl -LO https://storage.googleapis.com/container-structure-test/latest/container-structure-test-linux-amd64 && chmod +x container-structure-test-linux-amd64 && mkdir -p $HOME/bin && export PATH=$PATH:$HOME/bin && mv container-structure-test-linux-amd64 $HOME/bin/container-structure-test
+
       - name: Login to DockerHub Registry
         run: echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
 
-      - name: Build and Publish docker image for main branch
+      - name: Run image tests
+        run: |
+          docker build -t ${{ env.TEST_IMAGE }} -f docker/Dockerfile .
+          container-structure-test test --config docker/tests.yaml --image ${{ env.TEST_IMAGE }}
+
+      - name: Build and Publish docker image
         run: docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7 -t ${{ env.IMAGE_NAME }}:${{ github.ref_name }} -f docker/Dockerfile --push .
 
       - name: Build and Publish docker image for tags
