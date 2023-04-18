@@ -34,14 +34,15 @@ jobs:
       - name: Login to DockerHub Registry
         run: echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
 
+      - name: Build test image
+        run: docker build -t ${{ env.TEST_IMAGE }} -f docker/Dockerfile .
+
       - name: Run image tests
-        run: |
-          which container-structure-test
-          docker build -t ${{ env.TEST_IMAGE }} -f docker/Dockerfile .
-          container-structure-test test --config docker/tests.yaml --image ${{ env.TEST_IMAGE }}
+        run: container-structure-test test --config docker/tests.yaml --image ${{ env.TEST_IMAGE }}
 
       - name: Build and Publish docker image
-        run: docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7 -t ${{ env.IMAGE_NAME }}:${{ github.ref_name }} -f docker/Dockerfile --push .
+        # run: docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7 -t ${{ env.IMAGE_NAME }}:${{ github.ref_name }} -f docker/Dockerfile --push .
+        run: docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7 -t ${{ env.IMAGE_NAME }}:test -f docker/Dockerfile --push .
 
       - name: Build and Publish docker image for tags
         if: github.ref_type == 'tag'
