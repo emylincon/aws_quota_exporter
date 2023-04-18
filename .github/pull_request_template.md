@@ -20,7 +20,7 @@ closes #
     You can click on the checkbox to do this.
 -->
 
-- [ ] Review the [Contributing guidelines](CONTRIBUTING.md)
+- [ ] Review the [Contributing guidelines](CODE_OF_CONDUCT.md)
 - [ ] Run `pre-commit run -a` on your branch
 - [ ] Update your branch `git merge main`
 - [ ] Update documentation
