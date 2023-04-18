@@ -1,0 +1,31 @@
+---
+schemaVersion: 2.0.0
+
+fileExistenceTests:
+  - name: "aqe bin executable exists"
+    path: "/usr/local/bin/aqe"
+    shouldExist: true
+
+  - name: "config file exists"
+    path: "/etc/aqe/config.yml"
+    shouldExist: true
+
+commandTests:
+  - name: "aqe is installed"
+    command: "which"
+    args: ["aqe"]
+    expectedOutput: ["/usr/local/bin/aq"]
+  - name: "aqe help"
+    command: "aqe"
+    args: ["-h"]
+    excludedOutput: ["Usage of aqe.*"]
+
+metadataTest:
+  exposedPorts: ["10100"]
+  workdir: "/exporter"
+  user: exporter
+  entrypoint: ["aqe"]
+  cmd: ["--prom.port=10100"]
+# https://semaphoreci.com/blog/structure-testing-for-docker-containers
+# https://github.com/GoogleContainerTools/container-structure-test
+# container-structure-test test --config docker/test.yml --image ugwuanyi/aqe:latest
