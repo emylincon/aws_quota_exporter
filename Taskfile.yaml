@@ -15,7 +15,11 @@ tasks:
     cmds:
       - go test -fuzz=.
     silent: true
-  test:
+  test_verbose:
     cmds:
       - go test -v ./...
+    silent: true
+  test:
+    cmds:
+      - go test ./...
     silent: true

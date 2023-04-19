@@ -4,13 +4,17 @@ package pkg
 import (
 	"context"
 	"fmt"
+	"os"
 	"strconv"
 	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/arn"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	sq "github.com/aws/aws-sdk-go-v2/service/servicequotas"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"golang.org/x/exp/slog"
 )
 
@@ -37,13 +41,15 @@ func NewScraper() (*Scraper, error) {
 var maxResults int32 = 100
 
 // CreateScraper Scrape Quotas from AWS
-func (s *Scraper) CreateScraper(regions []string, serviceCode string, cacheExpiryDuration time.Duration) func() ([]*PrometheusMetric, error) {
+func (s *Scraper) CreateScraper(job JobConfig, cacheExpiryDuration time.Duration) func() ([]*PrometheusMetric, error) {
 	// create new cache for service
-	cacheStore := NewCache(serviceCode+".json", cacheExpiryDuration)
+	cacheStore := NewCache(job.ServiceCode+".json", cacheExpiryDuration)
+	cfg := s.getAWSConfig(job.Role)
+	AccountID := getAWSAccountID(cfg)
 
 	return func() ([]*PrometheusMetric, error) {
 		// logging start metrics collection
-		l := slog.With("serviceCode", serviceCode, "regions", regions, logGroup)
+		l := slog.With("serviceCode", job.ServiceCode, "regions", job.Regions, logGroup)
 		start := time.Now()
 		cacheData, err := cacheStore.Read()
 		if err == nil {
@@ -60,16 +66,17 @@ func (s *Scraper) CreateScraper(regions []string, serviceCode string, cacheExpir
 		l.Info("Scrapping metrics")
 
 		ctx := context.Background()
-		sclient := sq.NewFromConfig(s.cfg)
-		input := sq.ListServiceQuotasInput{ServiceCode: &serviceCode, MaxResults: &maxResults}
+		cfg := s.getAWSConfig(job.Role)
+		sclient := sq.NewFromConfig(cfg)
+		input := sq.ListServiceQuotasInput{ServiceCode: &job.ServiceCode, MaxResults: &maxResults}
 		metricList := []*PrometheusMetric{}
 		c := make(chan chanData)
 		// create goroutine workers
-		for _, region := range regions {
-			go getServiceQuotas(ctx, region, &input, sclient, c)
+		for _, region := range job.Regions {
+			go getServiceQuotas(ctx, region, AccountID, &input, sclient, c)
 		}
 		// retrieve channel results from goroutines
-		for i := 0; i < len(regions); i++ {
+		for i := 0; i < len(job.Regions); i++ {
 			data := <-c
 			if data.err != nil {
 				l.ErrorCtx(ctx, "Failed to get service quotas",
@@ -93,16 +100,75 @@ func (s *Scraper) CreateScraper(regions []string, serviceCode string, cacheExpir
 
 }
 
+func getAWSAccountID(cfg aws.Config) string {
+	opts := sts.Options{
+		APIOptions:   cfg.APIOptions,
+		Region:       cfg.Region,
+		Credentials:  cfg.Credentials,
+		DefaultsMode: cfg.DefaultsMode,
+	}
+
+	stssvc := sts.New(opts)
+	input := &sts.GetCallerIdentityInput{}
+	ctx := context.Background()
+	caller, err := stssvc.GetCallerIdentity(ctx, input)
+
+	if err != nil {
+		slog.WarnCtx(ctx, "Failed to get caller identity", "error", err)
+		return ""
+	}
+
+	return *caller.Account
+
+}
+
+func (s *Scraper) getAWSConfig(role string) aws.Config {
+	if role == "" {
+		return s.cfg
+	}
+	if !validateRoleARN(role) {
+		slog.Error("Role ARN is not valid", "RoleARN", role)
+		os.Exit(1)
+	}
+	ctx := context.Background()
+	cfg, err := config.LoadDefaultConfig(ctx)
+
+	if err != nil {
+		slog.ErrorCtx(ctx, "Error loading default AWS config", "error", err)
+		os.Exit(1)
+	}
+	// Create the credentials from AssumeRoleProvider to assume the role
+	// referenced by the "myRoleARN" ARN.
+	stsSvc := sts.NewFromConfig(cfg)
+	creds := stscreds.NewAssumeRoleProvider(stsSvc, role)
+	cfg.Credentials = aws.NewCredentialsCache(creds)
+	return cfg
+}
+func validateRoleARN(role string) bool {
+	if arn.IsARN(role) {
+		arnObj, err := arn.Parse(role)
+		if err != nil {
+			return false
+		}
+		if arnObj.Resource != "role" {
+			return false
+		}
+	}
+	return true
+}
+
 // Transform to prometheus format
-func Transform(quotas *sq.ListServiceQuotasOutput, defaultQuotas *sq.ListAWSDefaultServiceQuotasOutput, region string) ([]*PrometheusMetric, error) {
+func Transform(quotas *sq.ListServiceQuotasOutput, defaultQuotas *sq.ListAWSDefaultServiceQuotasOutput, region, account string) ([]*PrometheusMetric, error) {
 	metrics := []*PrometheusMetric{}
 	check := map[string]bool{}
+
 	for _, v := range quotas.Quotas {
 		metricName := createMetricName(*v.ServiceCode, *v.QuotaName)
+
 		metric := &PrometheusMetric{
 			Name:   metricName,
 			Value:  *v.Value,
-			Labels: map[string]string{"adjustable": strconv.FormatBool(v.Adjustable), "global_quota": strconv.FormatBool(v.GlobalQuota), "unit": *v.Unit, "region": region},
+			Labels: map[string]string{"adjustable": strconv.FormatBool(v.Adjustable), "global_quota": strconv.FormatBool(v.GlobalQuota), "unit": *v.Unit, "region": region, "account": account},
 			Desc:   *v.QuotaName,
 		}
 		metrics = append(metrics, metric)
@@ -114,7 +180,7 @@ func Transform(quotas *sq.ListServiceQuotasOutput, defaultQuotas *sq.ListAWSDefa
 			metric := &PrometheusMetric{
 				Name:   metricName,
 				Value:  *d.Value,
-				Labels: map[string]string{"adjustable": strconv.FormatBool(d.Adjustable), "global_quota": strconv.FormatBool(d.GlobalQuota), "unit": *d.Unit, "region": region},
+				Labels: map[string]string{"adjustable": strconv.FormatBool(d.Adjustable), "global_quota": strconv.FormatBool(d.GlobalQuota), "unit": *d.Unit, "region": region, "account": account},
 				Desc:   *d.QuotaName,
 			}
 			metrics = append(metrics, metric)
@@ -127,7 +193,7 @@ func createMetricName(serviceCode, quotaName string) string {
 	return fmt.Sprintf("aws_quota_%s_%s", serviceCode, PromString(quotaName))
 }
 
-func getServiceQuotas(ctx context.Context, region string, sqInput *sq.ListServiceQuotasInput, client *sq.Client, c chan chanData) {
+func getServiceQuotas(ctx context.Context, region, account string, sqInput *sq.ListServiceQuotasInput, client *sq.Client, c chan chanData) {
 	opts := func(o *sq.Options) { o.Region = region }
 	asqInput := &sq.ListAWSDefaultServiceQuotasInput{ServiceCode: sqInput.ServiceCode, MaxResults: &maxResults}
 	var wg sync.WaitGroup
@@ -162,7 +228,7 @@ func getServiceQuotas(ctx context.Context, region string, sqInput *sq.ListServic
 
 	}
 
-	m, err := Transform(r, d, region)
+	m, err := Transform(r, d, region, account)
 	data := chanData{
 		metrics: m,
 		err:     err,

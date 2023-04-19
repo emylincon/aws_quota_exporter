@@ -46,8 +46,7 @@ func TestScraper_CreateScraper(t *testing.T) {
 		cfg aws.Config
 	}
 	type args struct {
-		regions             []string
-		serviceCode         string
+		job                 JobConfig
 		cacheExpiryDuration time.Duration
 	}
 	cfg, _ := config.LoadDefaultConfig(context.TODO())
@@ -65,8 +64,7 @@ func TestScraper_CreateScraper(t *testing.T) {
 				cfg: cfg,
 			},
 			args: args{
-				regions:             []string{"us-west-2"},
-				serviceCode:         "lambda",
+				job:                 JobConfig{Regions: []string{"us-west-2"}, ServiceCode: "lambda"},
 				cacheExpiryDuration: time.Duration(1) * time.Hour,
 			},
 			want: func() ([]*PrometheusMetric, error) {
@@ -80,7 +78,7 @@ func TestScraper_CreateScraper(t *testing.T) {
 			s := &Scraper{
 				cfg: tt.fields.cfg,
 			}
-			got := s.CreateScraper(tt.args.regions, tt.args.serviceCode, tt.args.cacheExpiryDuration)
+			got := s.CreateScraper(tt.args.job, tt.args.cacheExpiryDuration)
 			d, derr := got()
 			r, terr := tt.want()
 			if (derr != nil) != tt.wantErr {
