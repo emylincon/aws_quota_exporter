@@ -23,11 +23,13 @@ jobs:
     regions:
       - us-west-1
       - us-east-1
+    role: arn:aws:iam::ACCOUNT-ID:role/rolename # optional
   - serviceCode: cloudformation
     regions:
       - us-west-1
       - us-east-1
 ```
+* Use the optional `role` key if you want the exporter to assume the role when retrieving that specific job metrics
 ## Help
 * View program help:
 ```bash
