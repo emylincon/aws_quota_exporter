@@ -242,10 +242,7 @@ func getListServiceQuotas(ctx context.Context, client *sq.Client, opts func(o *s
 	if err != nil {
 		return nil, err
 	}
-	for {
-		if r.NextToken == nil {
-			break
-		}
+	for r.NextToken != nil {
 		sqInput.NextToken = r.NextToken
 		rn, err := client.ListServiceQuotas(ctx, sqInput, opts)
 		if err != nil {
@@ -264,10 +261,7 @@ func getDefaultListServiceQuotas(ctx context.Context, client *sq.Client, opts fu
 	if err != nil {
 		return nil, err
 	}
-	for {
-		if r.NextToken == nil {
-			break
-		}
+	for r.NextToken != nil {
 		sqInput.NextToken = r.NextToken
 		rn, err := client.ListAWSDefaultServiceQuotas(ctx, sqInput, opts)
 		if err != nil {
