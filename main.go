@@ -38,7 +38,7 @@ func main() {
 	)
 	flag.Parse()
 
-	version := "0.0.1"
+	version := "0.1.0"
 
 	logger := pkg.NewLogger(*logFormatType, *logFolder, *logLevel).With("version", version)
 	slog.SetDefault(logger)
