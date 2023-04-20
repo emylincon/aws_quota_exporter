@@ -66,7 +66,7 @@ func (s *Scraper) CreateScraper(job JobConfig, cacheExpiryDuration time.Duration
 		l.Info("Scrapping metrics")
 
 		ctx := context.Background()
-		cfg := s.getAWSConfig(job.Role)
+		cfg := s.getAWSConfig(job.Role) // get credentials incase it expires
 		sclient := sq.NewFromConfig(cfg)
 		input := sq.ListServiceQuotasInput{ServiceCode: &job.ServiceCode, MaxResults: &maxResults}
 		metricList := []*PrometheusMetric{}
