@@ -23,3 +23,13 @@ tasks:
     cmds:
       - go test ./...
     silent: true
+  compose-up:
+    cmds:
+      - task: compose-build
+      - docker-compose up -d
+  compose-down:
+    cmds:
+      - docker-compose down
+  compose-build:
+    cmds:
+      - docker-compose build
