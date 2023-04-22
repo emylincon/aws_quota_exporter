@@ -1,0 +1,100 @@
+# https://kubernetes.io/docs/concepts/configuration/configmap/
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-configmap
+  namespace: default
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s # By default, scrape targets every 15 seconds.
+
+    # A scrape configuration containing exactly one endpoint to scrape:
+    # Here it's Prometheus itself.
+    scrape_configs:
+      # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
+      - job_name: "prometheus"
+
+        # Override the global default and scrape targets from this job every 5 seconds.
+        scrape_interval: 5s
+
+        static_configs:
+          - targets: ["localhost:9090"]
+
+      - job_name: "aws_quota_exporter"
+
+        # Override the global default and scrape targets from this job every 5 seconds.
+        scrape_interval: 15s
+
+        static_configs:
+          - targets: ["aqe.default.svc.cluster.local:10100"]
+---
+# https://kubernetes.io/docs/concepts/workloads/controllers/deployment/
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  namespace: default
+  labels:
+    app: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: prometheus
+  replicas: 1
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      containers:
+        - name: prometheus
+          image: prom/prometheus:latest
+          imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              cpu: "1"
+              memory: 2Gi
+            limits:
+              cpu: "1"
+              memory: 2Gi
+
+          ports:
+            - containerPort: 9090
+              name: prometheus1
+
+          volumeMounts:
+            - name: prometheus-configmap-volume
+              mountPath: /etc/prometheus/prometheus.yml
+              subPath: prometheus.yml
+
+      volumes:
+        - name: prometheus-configmap-volume
+          configMap:
+            name: prometheus-configmap
+            items:
+              - key: prometheus.yml
+                path: prometheus.yml
+      restartPolicy: Always
+---
+# https://kubernetes.io/docs/concepts/services-networking/service/
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: default
+spec:
+  selector:
+    app: prometheus
+  type: LoadBalancer
+  ports:
+    - name: prometheus
+      protocol: TCP
+      port: 9090
+      targetPort: 9090
+---
