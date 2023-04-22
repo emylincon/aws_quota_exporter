@@ -38,14 +38,14 @@ tasks:
       - kubectl create secret generic aws-secrets --from-env-file=env.out
   k8-up:
     cmds:
-      - kubectl apply -f kubernetes/aws_quota_exporter.yml
-      - kubectl apply -f kubernetes/prometheus.yml
-      - kubectl apply -f kubernetes/grafana.yml
+      - kubectl apply -f kubernetes/aws_quota_exporter.yaml
+      - kubectl apply -f kubernetes/prometheus.yaml
+      - kubectl apply -f kubernetes/grafana.yaml
   k8-down:
     cmds:
-      - kubectl delete -f kubernetes/aws_quota_exporter.yml
-      - kubectl delete -f kubernetes/prometheus.yml
-      - kubectl delete -f kubernetes/grafana.yml
+      - kubectl delete -f kubernetes/aws_quota_exporter.yaml
+      - kubectl delete -f kubernetes/prometheus.yaml
+      - kubectl delete -f kubernetes/grafana.yaml
   k8-grafana:
     cmds:
       - minikube service grafana
