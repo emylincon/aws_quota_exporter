@@ -33,3 +33,19 @@ tasks:
   compose-build:
     cmds:
       - docker-compose build
+  create-secret:
+    cmds:
+      - kubectl create secret generic aws-secrets --from-env-file=env.out
+  k8-up:
+    cmds:
+      - kubectl apply -f kubernetes/aws_quota_exporter.yml
+      - kubectl apply -f kubernetes/prometheus.yml
+      - kubectl apply -f kubernetes/grafana.yml
+  k8-down:
+    cmds:
+      - kubectl delete -f kubernetes/aws_quota_exporter.yml
+      - kubectl delete -f kubernetes/prometheus.yml
+      - kubectl delete -f kubernetes/grafana.yml
+  k8-grafana:
+    cmds:
+      - minikube service grafana

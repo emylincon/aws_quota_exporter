@@ -1,0 +1,91 @@
+# https://kubernetes.io/docs/concepts/configuration/configmap/
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aqe-configmap
+  namespace: default
+data:
+  config.yml: |
+    jobs:
+      - serviceCode: lambda
+        regions:
+          - us-west-1
+          - us-east-1
+      - serviceCode: cloudformation
+        regions:
+          - us-west-1
+          - us-east-1
+
+---
+# https://kubernetes.io/docs/concepts/workloads/controllers/deployment/
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aqe
+  namespace: default
+  labels:
+    app: aqe
+spec:
+  selector:
+    matchLabels:
+      app: aqe
+  replicas: 1
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: aqe
+    spec:
+      containers:
+        - name: aqe
+          image: ugwuanyi/aqe:main
+          imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              cpu: "1"
+              memory: 2Gi
+            limits:
+              cpu: "1"
+              memory: 2Gi
+
+          ports:
+            - containerPort: 10100
+              name: aqe
+
+          volumeMounts:
+            - name: aqe-configmap-volume
+              mountPath: /etc/aqe/config.yml
+              subPath: config.yml
+          envFrom:
+            - secretRef:
+                name: aws-secrets
+
+      volumes:
+        - name: aqe-configmap-volume
+          configMap:
+            name: aqe-configmap
+            items:
+              - key: config.yml
+                path: config.yml
+      restartPolicy: Always
+---
+# https://kubernetes.io/docs/concepts/services-networking/service/
+apiVersion: v1
+kind: Service
+metadata:
+  name: aqe
+  namespace: default
+spec:
+  selector:
+    app: aqe
+  type: LoadBalancer
+  ports:
+    - name: aqe
+      protocol: TCP
+      port: 10100
+      targetPort: 10100
+---
