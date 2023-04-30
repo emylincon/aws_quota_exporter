@@ -4,7 +4,7 @@ metadata:
   name: {{ include "aqe.fullname" . }}
   labels:
     {{- include "aqe.labels" . | nindent 4 }}
-{{- with .Values.env }}
+{{- with .Values.configmap }}
 data:
   {{- toYaml . | nindent 2 }}
 {{- end }}

@@ -1,0 +1,25 @@
+# https://taskfile.dev
+
+version: "3"
+
+tasks:
+  up:
+    desc: "deploy manifest files using kubectl"
+    cmds:
+      - kubectl apply -f kubernetes/manifests/aws_quota_exporter.yaml
+      - kubectl apply -f kubernetes/manifests/prometheus.yaml
+      - kubectl apply -f kubernetes/manifests/grafana.yaml
+  secret:
+    desc: "create aws secrets in kubernetes"
+    cmds:
+      - kubectl create secret generic aws-secrets --from-env-file=env.out
+  down:
+    desc: "delete kubernetes resources"
+    cmds:
+      - kubectl delete -f kubernetes/manifests/aws_quota_exporter.yaml
+      - kubectl delete -f kubernetes/manifests/prometheus.yaml
+      - kubectl delete -f kubernetes/manifests/grafana.yaml
+  grafana:
+    desc: "open grafana webui"
+    cmds:
+      - minikube service grafana

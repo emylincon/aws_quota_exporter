@@ -69,3 +69,10 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      volumes:
+        - name: {{ include "aqe.fullname" . }}
+          configMap:
+            name: {{ include "aqe.fullname" . }}
+            items:
+              - key: config.yml
+                path: config.yml
