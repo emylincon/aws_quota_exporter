@@ -1,0 +1,23 @@
+# https://taskfile.dev
+
+version: "3"
+
+tasks:
+  up:
+    desc: "package and deploy helm chart"
+    cmds:
+      - helm package kubernetes/helm/aqe -d packages/aqe.tgz
+      - helm install -f values.test aqe packages/aqe.tgz
+    silent: true
+  down:
+    desc: delete helm chart
+    cmds:
+      - helm uninstall aqe
+  expose-ingress:
+    desc: expose minikube ingress. it is exposed by default in 127.0.0.1
+    cmds:
+      - minikube tunnel
+  port-forward:
+    desc: port forward to aqe service to port 10100 in localhost
+    cmds:
+      - kubectl -n default port-forward svc/aqe 10100:10100

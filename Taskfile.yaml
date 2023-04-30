@@ -2,50 +2,48 @@
 
 version: "3"
 
+includes:
+  k8:
+    taskfile: ./kubernetes/manifests
+  helm:
+    taskfile: ./kubernetes/helm
+
 tasks:
   start:
+    desc: "start application in dev mode"
     cmds:
       - export AWS_PROFILE=emeka;go run . --prom.port=10100 --config.file=config.yml.test --log.level=debug --log.format=text
     silent: true
   retest:
+    desc: "go release build test"
     cmds:
       - goreleaser release --snapshot --clean
     silent: true
   fuzz:
+    desc: "go fuzz test"
     cmds:
       - go test -fuzz=.
     silent: true
   test_verbose:
+    desc: "run tests in verbose mode"
     cmds:
       - go test -v ./...
     silent: true
   test:
+    desc: "run tests"
     cmds:
       - go test ./...
     silent: true
   compose-up:
+    desc: "docker compose up"
     cmds:
       - task: compose-build
       - docker-compose up -d
   compose-down:
+    desc: "docker compose down"
     cmds:
       - docker-compose down
   compose-build:
+    desc: "build docker compose images"
     cmds:
       - docker-compose build
-  create-secret:
-    cmds:
-      - kubectl create secret generic aws-secrets --from-env-file=env.out
-  k8-up:
-    cmds:
-      - kubectl apply -f kubernetes/aws_quota_exporter.yaml
-      - kubectl apply -f kubernetes/prometheus.yaml
-      - kubectl apply -f kubernetes/grafana.yaml
-  k8-down:
-    cmds:
-      - kubectl delete -f kubernetes/aws_quota_exporter.yaml
-      - kubectl delete -f kubernetes/prometheus.yaml
-      - kubectl delete -f kubernetes/grafana.yaml
-  k8-grafana:
-    cmds:
-      - minikube service grafana
