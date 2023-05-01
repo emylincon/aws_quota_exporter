@@ -8,7 +8,7 @@ RUN go build -o aqe .
 
 FROM alpine:latest
 
-RUN apk --no-cache add ca-certificates && \
+RUN apk update && apk --no-cache add ca-certificates && \
     addgroup -g 1000 exporter && \
     adduser -u 1000 -D -G exporter exporter -h /exporter
 
