@@ -6,9 +6,7 @@ tasks:
   up:
     desc: "deploy manifest files using kubectl"
     cmds:
-      - kubectl apply -f kubernetes/manifests/aws_quota_exporter.yaml
-      - kubectl apply -f kubernetes/manifests/prometheus.yaml
-      - kubectl apply -f kubernetes/manifests/grafana.yaml
+      - kubectl apply -f 'kubernetes/manifests/*.yaml'
   secret:
     desc: "create aws secrets in kubernetes"
     cmds:
@@ -16,9 +14,7 @@ tasks:
   down:
     desc: "delete kubernetes resources"
     cmds:
-      - kubectl delete -f kubernetes/manifests/aws_quota_exporter.yaml
-      - kubectl delete -f kubernetes/manifests/prometheus.yaml
-      - kubectl delete -f kubernetes/manifests/grafana.yaml
+      - kubectl delete -f 'kubernetes/manifests/*.yaml'
   grafana:
     desc: "open grafana webui"
     cmds:

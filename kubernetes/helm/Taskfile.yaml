@@ -2,12 +2,15 @@
 
 version: "3"
 
+vars:
+  VERSION: '{{.VERSION | default "0.0.0"}}'
+
 tasks:
   up:
     desc: "package and deploy helm chart"
     cmds:
-      - helm package kubernetes/helm/aqe -d packages/aqe.tgz
-      - helm install -f values.test aqe packages/aqe.tgz
+      - helm package kubernetes/helm/aqe -d packages/ --version {{.VERSION}}
+      - helm install -f values.test aqe packages/aqe-{{.VERSION}}.tgz
     silent: true
   down:
     desc: delete helm chart
