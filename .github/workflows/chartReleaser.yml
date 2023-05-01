@@ -69,6 +69,7 @@ jobs:
 
       - name: upload chart
         run: |
+          cd .cr-release-packages/
           releaseId=101460572
           curl -L \
           -X POST \
@@ -77,4 +78,4 @@ jobs:
           -H "X-GitHub-Api-Version: 2022-11-28" \
           -H "Content-Type: application/octet-stream" \
           https://uploads.github.com/repos/${{ env.owner }}/${{ env.repo_name }}/releases/${releaseId}/assets?name=${pkg} \
-          --data-binary "@.cr-release-packages/${pkg}"
+          --data-binary "@${pkg}"
