@@ -75,17 +75,17 @@ jobs:
           cd .cr-release-packages/
           releaseId=101460572
 
-          touch emeka.zip
+          # touch emeka.zip
 
-          echo "name=/repos/${{ env.owner }}/${{ env.repo_name }}/releases/${releaseId}/assets?name=emeka.zip"
-          gh version
+          # echo "name=/repos/${{ env.owner }}/${{ env.repo_name }}/releases/${releaseId}/assets?name=emeka.zip"
+          # gh version
 
           gh api \
           --method POST \
           -H "Accept: application/vnd.github+json" \
           -H "X-GitHub-Api-Version: 2022-11-28" \
-          /repos/${{ env.owner }}/${{ env.repo_name }}/releases/${releaseId}/assets?name=emeka.zip \
-          --data-binary '@emeka.zip'
+          /repos/${{ env.owner }}/${{ env.repo_name }}/releases/${releaseId}/assets?name=${pkg} \
+          -f '${pkg}=@${pkg}'
 
 
 
