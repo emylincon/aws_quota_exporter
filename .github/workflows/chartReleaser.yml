@@ -81,6 +81,6 @@ jobs:
           -H "X-GitHub-Api-Version: 2022-11-28" \
           --hostname HOSTNAME \
           /repos/${{ env.owner }}/${{ env.repo_name }}/releases/${releaseId}/assets?name=${pkg} \
-          -f '@${pkg}'
+          -f "@${pkg}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
