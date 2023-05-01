@@ -56,6 +56,11 @@ jobs:
           helm repo index .cr-release-packages
           mv .cr-release-packages/index.yaml index.yaml
 
+      - name: verify yq
+        run: |
+          yq --help
+          yq '.' index.yaml
+
       - name: update index.yaml
         run: |
           appversion=$(yq '.entries.aqe[-1].appVersion' index.yaml)
