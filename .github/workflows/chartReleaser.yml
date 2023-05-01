@@ -32,6 +32,6 @@ jobs:
       - name: Run chart-releaser
         uses: helm/chart-releaser-action@v1.5.0
         with:
-          charts_dir: kubernetes/helm/aqe
+          charts_dir: kubernetes/helm
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
