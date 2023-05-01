@@ -78,7 +78,7 @@ jobs:
           # touch emeka.zip
 
           # echo "name=/repos/${{ env.owner }}/${{ env.repo_name }}/releases/${releaseId}/assets?name=emeka.zip"
-          # gh version
+          gh version
 
           gh api \
           --method POST \
