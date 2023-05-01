@@ -75,11 +75,12 @@ jobs:
           cd .cr-release-packages/
           releaseId=101460572
 
+          ls
+
           gh api \
           --method POST \
           -H "Accept: application/vnd.github+json" \
           -H "X-GitHub-Api-Version: 2022-11-28" \
-          --hostname HOSTNAME \
           /repos/${{ env.owner }}/${{ env.repo_name }}/releases/${releaseId}/assets?name=${pkg} \
           -f "@${pkg}"
         env:
