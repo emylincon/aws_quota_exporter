@@ -56,21 +56,16 @@ jobs:
           helm repo index .cr-release-packages
           mv .cr-release-packages/index.yaml index.yaml
 
-      - name: verify yq
-        run: |
-          yq --help
-          yq '.' index.yaml
-
       - name: update index.yaml
         run: |
-          appversion=$(yq '.entries.aqe[-1].appVersion' index.yaml)
-          chartversion=$(yq '.entries.aqe[-1].appVersion' index.yaml)
+          appversion=$(yq r index.yaml 'entries.aqe[-1].appVersion')
+          chartversion=$(yq r index.yaml 'entries.aqe[-1].version')
 
           export pkg=helm-chart-aqe-${chartversion}.tgz
           mv .cr-release-packages/aqe-${chartversion}.tgz .cr-release-packages/$pkg
 
-          chart="${{ env.repo }}/releases/download/v${version}/${pkg}.tgz"
-          yq e -i ".entries.aqe[-1].urls[0] = \"${chart}\"" a.yml
+          chart="${{ env.repo }}/releases/download/v${appversion}/${pkg}.tgz"
+          yq w -i index.yaml "entries.aqe[-1].urls[0]" ${chart}
 
       - name: upload chart
         run: |
