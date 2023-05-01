@@ -7,6 +7,8 @@ includes:
     taskfile: ./kubernetes/manifests
   helm:
     taskfile: ./kubernetes/helm
+    vars:
+      VERSION: 0.0.0
 
 tasks:
   start:
