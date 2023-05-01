@@ -69,14 +69,12 @@ jobs:
 
       - name: upload chart
         run: |
-          echo "pkg=${pkg}"
-          cd .cr-release-packages/
-
           chartversion=$(yq r index.yaml 'entries.aqe[-1].version')
-          export pkg=helm-chart-aqe-${chartversion}.tgz
+          pkg=helm-chart-aqe-${chartversion}.tgz
 
           echo "pkg=${pkg}"
 
+          cd .cr-release-packages/
           releaseId=101460572
           curl -L \
           -X POST \
