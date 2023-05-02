@@ -67,32 +67,6 @@ jobs:
           chart="${{ env.repo }}/releases/download/v${appversion}/${pkg}.tgz"
           yq w -i index.yaml "entries.aqe[-1].urls[0]" ${chart}
 
-      # - name: upload chart
-      #   run: |
-      #     chartversion=$(yq r index.yaml 'entries.aqe[-1].version')
-      #     pkg=helm-chart-aqe-${chartversion}.tgz
-
-      #     cd .cr-release-packages/
-      #     releaseId=101460572
-
-      #     # touch emeka.zip
-
-      #     # echo "name=/repos/${{ env.owner }}/${{ env.repo_name }}/releases/${releaseId}/assets?name=emeka.zip"
-      #     gh version
-
-      #     gh api \
-      #     --method POST \
-      #     -H "Accept: application/vnd.github+json" \
-      #     -H "X-GitHub-Api-Version: 2022-11-28" \
-      #     /repos/${{ env.owner }}/${{ env.repo_name }}/releases/${releaseId}/assets?name=${pkg} \
-      #     -f '${pkg}=@${pkg}'
-
-      #     # -H "Content-Type: application/vnd.cncf.helm.chart.content.v1.tar+gzip" \
-      #     #-f 'helm-chart-aqe-0.0.0.tgz'
-      #     # -f "@${pkg}"
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       # https://github.com/marketplace/actions/upload-to-github-release
       - name: git release update
         uses: xresloader/upload-to-github-release@v1
@@ -101,3 +75,11 @@ jobs:
         with:
           file: ".cr-release-packages/*.tgz"
           update_latest_release: true
+      # https://github.com/peaceiris/actions-gh-pages#table-of-contents
+
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          exclude_assets: ".github,.cr-release-packages"
+          publish_dir: .
