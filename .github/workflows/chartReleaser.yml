@@ -38,18 +38,6 @@ jobs:
       - name: Install Helm
         uses: azure/setup-helm@v3
 
-      # - name: install chart releaser
-      #   run: |
-      #     curl -LO https://github.com/helm/chart-releaser/releases/download/v1.5.0/chart-releaser_1.5.0_linux_amd64.tar.gz
-      #     tar -xf chart-releaser_1.5.0_linux_amd64.tar.gz
-      #     rm chart-releaser_1.5.0_linux_amd64.tar.gz
-      #     chmod +x cr
-      #     mv cr /usr/local/bin/cr
-
-      # - name: Run chart-releaser
-      #   run: |
-      #     cr package ${{ env.charts_dir }}
-      #     cr index kubernetes/helm/aqe --owner emylincon --git-repo ${{ env.repo }} -i index.yaml
       - name: helm package
         run: |
           helm package kubernetes/helm/aqe -d .cr-release-packages/
@@ -61,10 +49,10 @@ jobs:
           appversion=$(yq r index.yaml 'entries.aqe[-1].appVersion')
           chartversion=$(yq r index.yaml 'entries.aqe[-1].version')
 
-          export pkg=helm-chart-aqe-${chartversion}.tgz
+          pkg=helm-chart-aqe-${chartversion}.tgz
           mv .cr-release-packages/aqe-${chartversion}.tgz .cr-release-packages/$pkg
 
-          chart="${{ env.repo }}/releases/download/v${appversion}/${pkg}.tgz"
+          chart="${{ env.repo }}/releases/download/v${appversion}/${pkg}"
           yq w -i index.yaml "entries.aqe[-1].urls[0]" ${chart}
 
       # https://github.com/marketplace/actions/upload-to-github-release
@@ -83,3 +71,4 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           exclude_assets: ".github,.cr-release-packages"
           publish_dir: .
+          enable_jekyll: true
