@@ -69,6 +69,6 @@ jobs:
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          exclude_assets: ".github,.cr-release-packages"
+          exclude_assets: ".cr-release-packages"
           publish_dir: .
           enable_jekyll: true
