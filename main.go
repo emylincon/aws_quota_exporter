@@ -69,7 +69,7 @@ func main() {
 	}
 
 	reg := prometheus.NewRegistry()
-	slog.Info("Registring scrappers")
+	slog.Info("Registering scrappers")
 	for _, job := range qcl.Jobs {
 		pc := pkg.NewPrometheusCollector(s.CreateScraper(job, *cacheDuration))
 		reg.MustRegister(pc)

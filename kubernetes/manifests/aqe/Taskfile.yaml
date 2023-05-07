@@ -6,7 +6,7 @@ tasks:
   up:
     desc: "deploy manifest files using kubectl"
     cmds:
-      - kubectl apply -f 'kubernetes/manifests/*.yaml'
+      - kubectl apply -f 'kubernetes/manifests/aqe/*.yml'
   secret:
     desc: "create aws secrets in kubernetes"
     cmds:
@@ -14,7 +14,7 @@ tasks:
   down:
     desc: "delete kubernetes resources"
     cmds:
-      - kubectl delete -f 'kubernetes/manifests/*.yaml'
+      - kubectl delete -f 'kubernetes/manifests/aqe/*.yml'
   grafana:
     desc: "open grafana webui"
     cmds:

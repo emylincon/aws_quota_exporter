@@ -1,0 +1,17 @@
+# https://taskfile.dev
+
+version: "3"
+
+tasks:
+  up:
+    desc: "deploy argocd"
+    cmds:
+      - kubectl apply -n argocd -f kubernetes/manifests/argocd/install.yaml
+  down:
+    desc: "delete argocd resources"
+    cmds:
+      - kubectl delete -n argocd -f kubernetes/manifests/argocd/install.yaml
+  password:
+    desc: "get argocd password"
+    cmds:
+      - kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{{`{.data.password}`}}' | base64 -d | pbcopy
