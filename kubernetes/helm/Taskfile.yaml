@@ -12,6 +12,15 @@ tasks:
       - helm package kubernetes/helm/aqe -d packages/ --version {{.VERSION}}
       - helm install -f values.test aqe packages/aqe-{{.VERSION}}.tgz
     silent: true
+  remote:
+    desc: "install using remote chart"
+    cmds:
+      - helm repo update aws_quota_exporter
+      - helm install -n aqe -f values.test aqe aws_quota_exporter/aqe
+  status:
+    desc: helm status
+    cmds:
+      - helm status aqe
   down:
     desc: delete helm chart
     cmds:
