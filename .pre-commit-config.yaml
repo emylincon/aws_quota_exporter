@@ -27,3 +27,10 @@ repos:
     rev: v8.2.0
     hooks:
       - id: gitleaks
+  - repo: https://github.com/norwoodj/helm-docs
+    rev: v1.11.0
+    hooks:
+      - id: helm-docs
+        args:
+          - --chart-search-root=kubernetes/helm
+          - --template-files=README.md.gotmpl

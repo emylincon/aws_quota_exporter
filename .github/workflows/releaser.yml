@@ -1,4 +1,4 @@
-name: goreleaser
+name: releaser
 
 on:
   push:
@@ -8,8 +8,15 @@ on:
 permissions:
   contents: write
 
+env:
+  charts_dir: kubernetes/helm
+  repo: https://github.com/emylincon/aws_quota_exporter
+  owner: emylincon
+  repo_name: aws_quota_exporter
+
 jobs:
   goreleaser:
+    name: goreleaser
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -36,3 +43,63 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  chartreleaser:
+    name: Releaser Helm Chart
+    needs: goreleaser
+    # depending on default permission settings for your org (contents being read-only or read-write for workloads), you will have to add permissions
+    # see: https://docs.github.com/en/actions/security-guides/automatic-token-authentication#modifying-the-permissions-for-the-github_token
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
+      - name: install yq
+        uses: chrisdickinson/setup-yq@latest
+
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+
+      - name: helm package
+        run: |
+          helm package kubernetes/helm/aqe -d .cr-release-packages/
+          helm repo index .cr-release-packages
+          mv .cr-release-packages/index.yaml index.yaml
+
+      - name: update index.yaml
+        run: |
+          appversion=$(yq r index.yaml 'entries.aqe[-1].appVersion')
+          chartversion=$(yq r index.yaml 'entries.aqe[-1].version')
+
+          pkg=helm-chart-aqe-${chartversion}.tgz
+          mv .cr-release-packages/aqe-${chartversion}.tgz .cr-release-packages/$pkg
+
+          chart="${{ env.repo }}/releases/download/v${appversion}/${pkg}"
+          yq w -i index.yaml "entries.aqe[-1].urls[0]" ${chart}
+
+      # https://github.com/marketplace/actions/upload-to-github-release
+      - name: git release update
+        uses: xresloader/upload-to-github-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          file: ".cr-release-packages/*.tgz"
+          update_latest_release: true
+      # https://github.com/peaceiris/actions-gh-pages#table-of-contents
+
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          exclude_assets: ".cr-release-packages"
+          publish_dir: .
+          enable_jekyll: true

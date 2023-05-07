@@ -80,6 +80,37 @@ The AWS SDK uses its default credential chain to find AWS credentials. This defa
 ```bash
 $ AWS_PROFILE=test_profile
 ```
+
+# Helm Chart Usage
+Steps to use the helm chart
+* Add chart to local repository
+```bash
+helm repo add aws_quota_exporter https://emylincon.github.io/aws_quota_exporter
+```
+* To view configurable values. You can edit any of those the configurable values.
+```bash
+helm show values aws_quota_exporter/aqe
+```
+* In this example, we will set the aws credentials in values.yaml
+```yaml
+secret:
+  # base64 encoded secrets
+  AWS_ACCESS_KEY_ID: QVdTX0FDQ0VTU19LRVlfSUQK
+  AWS_SECRET_ACCESS_KEY: QVdTX1NFQ1JFVF9BQ0NFU1NfS0VZCg==
+```
+* We will create a new namespace and install the chart in the namespace
+```bash
+kubectl create namespace aqe
+helm install -n aqe -f values.test aqe aws_quota_exporter/aqe
+```
+* View installed chart
+```bash
+helm list -A
+```
+* Uinstall chart
+```bash
+helm uninstall -n aqe aqe
+```
 ## AWS Permission Required
 The exporter requires the AWS managed policy `ServiceQuotasReadOnlyAccess`. This also depends on the jobs specified in the `config.yml` file, as all of the permissions are probably not required. The permissions included in `ServiceQuotasReadOnlyAccess` are as follows in policy document:
 ```json
