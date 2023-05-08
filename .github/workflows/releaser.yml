@@ -73,18 +73,19 @@ jobs:
         run: |
           helm package kubernetes/helm/aqe -d .cr-release-packages/
           helm repo index .cr-release-packages
-          mv .cr-release-packages/index.yaml index.yaml
 
       - name: update index.yaml
         run: |
-          appversion=$(yq r index.yaml 'entries.aqe[-1].appVersion')
-          chartversion=$(yq r index.yaml 'entries.aqe[-1].version')
+          indexfile=".cr-release-packages/index.yaml"
+          appversion=$(yq r $indexfile 'entries.aqe[-1].appVersion')
+          chartversion=$(yq r $indexfile 'entries.aqe[-1].version')
 
           pkg=helm-chart-aqe-${chartversion}.tgz
           mv .cr-release-packages/aqe-${chartversion}.tgz .cr-release-packages/$pkg
 
           chart="${{ env.repo }}/releases/download/v${appversion}/${pkg}"
           yq w -i index.yaml "entries.aqe[-1].urls[0]" ${chart}
+          yq m -a $indexfile index.yaml > index.yaml
 
       # https://github.com/marketplace/actions/upload-to-github-release
       - name: git release update
