@@ -92,6 +92,8 @@ jobs:
           yq w -i $indexfile "entries.aqe[-1].urls[0]" ${chart}
           yq m -a $indexfile index.yaml > index.yaml
           cat index.yaml
+          echo "--------------------------------------------------------"
+          cat $indexfile
 
       # # https://github.com/marketplace/actions/upload-to-github-release
       # - name: git release update
