@@ -40,7 +40,7 @@ func main() {
 	)
 	flag.Parse()
 
-	version := "0.1.1"
+	version := "0.1.2"
 	if *Version {
 		fmt.Printf("aqe version %s %s/%s \n", version, runtime.GOOS, runtime.GOARCH)
 		os.Exit(0)
