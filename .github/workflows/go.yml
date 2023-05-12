@@ -46,7 +46,8 @@ jobs:
         id: index-yaml
         run: |
           git branch
-          git fetch
+          git fetch --all
+          echo "after all"
           git branch
           git checkout gh-pages -- index.yaml
           cat index.yaml
