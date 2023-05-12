@@ -87,6 +87,9 @@ jobs:
           mv .cr-release-packages/aqe-${chartversion}.tgz .cr-release-packages/$pkg
 
           wget https://github.com/emylincon/aws_quota_exporter/raw/gh-pages/index.yaml
+          echo "******************************** before ********************************"
+          cat index.yaml
+          echo "******************************** before ********************************"
 
           chart="${{ env.repo }}/releases/download/v${appversion}/${pkg}"
           yq w -i $indexfile "entries.aqe[-1].urls[0]" ${chart}
