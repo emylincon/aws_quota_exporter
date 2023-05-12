@@ -19,7 +19,7 @@ jobs:
     outputs:
       run: ${{ steps.diff.outputs.run }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v1
         id: checkout
 
       # --diff-filter=[(A|C|D|M|R|T|U|X|B)…​[*]]
