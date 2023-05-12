@@ -45,6 +45,9 @@ jobs:
       - name: checkout-index
         id: index-yaml
         run: |
+          git branch
+          git fetch
+          git branch
           git checkout gh-pages -- index.yaml
           cat index.yaml
 
