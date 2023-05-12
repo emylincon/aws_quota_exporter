@@ -42,6 +42,11 @@ jobs:
             done
           fi
           echo "run=${run}"  >> "$GITHUB_OUTPUT"
+      - name: checkout-index
+        id: index-yaml
+        run: |
+          git checkout gh-pages -- index.yaml
+          cat index.yaml
 
   build:
     runs-on: ubuntu-latest
