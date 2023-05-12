@@ -82,10 +82,11 @@ jobs:
 
           pkg=helm-chart-aqe-${chartversion}.tgz
           mv .cr-release-packages/aqe-${chartversion}.tgz .cr-release-packages/$pkg
-          git checkout gh-pages -- index.yaml
+
+          wget https://github.com/emylincon/aws_quota_exporter/raw/gh-pages/index.yaml
 
           chart="${{ env.repo }}/releases/download/v${appversion}/${pkg}"
-          yq w -i index.yaml "entries.aqe[-1].urls[0]" ${chart}
+          yq w -i $indexfile "entries.aqe[-1].urls[0]" ${chart}
           yq m -a $indexfile index.yaml > index.yaml
 
       # https://github.com/marketplace/actions/upload-to-github-release

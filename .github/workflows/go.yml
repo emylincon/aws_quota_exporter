@@ -19,7 +19,7 @@ jobs:
     outputs:
       run: ${{ steps.diff.outputs.run }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         id: checkout
 
       # --diff-filter=[(A|C|D|M|R|T|U|X|B)…​[*]]
@@ -42,11 +42,6 @@ jobs:
             done
           fi
           echo "run=${run}"  >> "$GITHUB_OUTPUT"
-      - name: checkout-index
-        id: index-yaml
-        run: |
-          wget https://github.com/emylincon/aws_quota_exporter/raw/gh-pages/index.yaml
-          cat index.yaml
 
   build:
     runs-on: ubuntu-latest
