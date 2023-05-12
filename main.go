@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
 	"time"
 
@@ -35,10 +36,15 @@ func main() {
 		logLevel      = flag.String("log.level", "INFO", "Log level to log from (DEBUG|INFO|WARN|ERROR).")
 		promPort      = flag.Int("prom.port", 10100, "port to expose prometheus metrics.")
 		cacheDuration = flag.Duration("cache.duration", 300, "cache expiry time (seconds).")
+		Version       = flag.Bool("version", false, "Display aqe version")
 	)
 	flag.Parse()
 
-	version := "0.1.1"
+	version := "0.1.2"
+	if *Version {
+		fmt.Printf("aqe version %s %s/%s \n", version, runtime.GOOS, runtime.GOARCH)
+		os.Exit(0)
+	}
 
 	logger := pkg.NewLogger(*logFormatType, *logFolder, *logLevel).With("version", version)
 	slog.SetDefault(logger)
