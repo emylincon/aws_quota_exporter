@@ -93,8 +93,8 @@ jobs:
 
           chart="${{ env.repo }}/releases/download/v${appversion}/${pkg}"
           yq w -i $indexfile "entries.aqe[-1].urls[0]" ${chart}
-          yq m -a $indexfile index.yaml > index.yaml
-          cat index.yaml
+          yq m -a $indexfile index.yaml
+          # cat index.yaml
           echo "--------------------------------------------------------"
           cat $indexfile
 
