@@ -13,13 +13,12 @@ name: "CodeQL"
 
 on:
   push:
-    tags: ["*"]
-  #   branches: ["main"]
-  # pull_request:
-  #   # The branches below must be a subset of the branches above
-  #   branches: ["main"]
-  # schedule:
-  #   - cron: "21 17 * * 4"
+    branches: ["main"]
+  pull_request:
+    # The branches below must be a subset of the branches above
+    branches: ["main"]
+  schedule:
+    - cron: "21 17 * * 4"
 
 env:
   FILES_TO_MONITOR: "yml go"

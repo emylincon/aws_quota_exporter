@@ -4,9 +4,6 @@ on:
   push:
     tags:
       - "*"
-    branches: ["main"]
-  pull_request:
-    branches: ["main"]
 
 permissions:
   contents: write
@@ -18,38 +15,38 @@ env:
   repo_name: aws_quota_exporter
 
 jobs:
-  # goreleaser:
-  #   name: goreleaser
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@v3
-  #       with:
-  #         fetch-depth: 0
+  goreleaser:
+    name: goreleaser
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
-  #     - name: Fetch all tags
-  #       run: git fetch --force --tags
+      - name: Fetch all tags
+        run: git fetch --force --tags
 
-  #     - name: Login to DockerHub Registry
-  #       run: echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
+      - name: Login to DockerHub Registry
+        run: echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
 
-  #     - name: Set up Go
-  #       uses: actions/setup-go@v4
-  #       with:
-  #         go-version: stable
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: stable
 
-  #     - name: Run GoReleaser
-  #       uses: goreleaser/goreleaser-action@v4
-  #       with:
-  #         distribution: goreleaser
-  #         version: latest
-  #         args: release --clean
-  #       env:
-  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v4
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   chartreleaser:
     name: Releaser Helm Chart
-    # needs: goreleaser
+    needs: goreleaser
     # depending on default permission settings for your org (contents being read-only or read-write for workloads), you will have to add permissions
     # see: https://docs.github.com/en/actions/security-guides/automatic-token-authentication#modifying-the-permissions-for-the-github_token
     permissions:
@@ -92,23 +89,21 @@ jobs:
           yq w -i $indexfile "entries.aqe[-1].urls[0]" ${chart}
           yq m -a -i $indexfile index.yaml
           mv $indexfile index.yaml
-          echo "--------------------------------------------------------"
-          cat index.yaml
 
-      # # https://github.com/marketplace/actions/upload-to-github-release
-      # - name: git release update
-      #   uses: xresloader/upload-to-github-release@v1
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #   with:
-      #     file: ".cr-release-packages/*.tgz"
-      #     update_latest_release: true
-      # # https://github.com/peaceiris/actions-gh-pages#table-of-contents
+      # https://github.com/marketplace/actions/upload-to-github-release
+      - name: git release update
+        uses: xresloader/upload-to-github-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          file: ".cr-release-packages/*.tgz"
+          update_latest_release: true
+      # https://github.com/peaceiris/actions-gh-pages#table-of-contents
 
-      # - name: Deploy
-      #   uses: peaceiris/actions-gh-pages@v3
-      #   with:
-      #     github_token: ${{ secrets.GITHUB_TOKEN }}
-      #     exclude_assets: ".cr-release-packages"
-      #     publish_dir: .
-      #     enable_jekyll: true
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          exclude_assets: ".cr-release-packages"
+          publish_dir: .
+          enable_jekyll: true

@@ -5,10 +5,9 @@ name: Go
 
 on:
   push:
-    tags: ["*"]
-  #   branches: ["main"]
-  # pull_request:
-  #   branches: ["main"]
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
 
 env:
   FILES_TO_MONITOR: "yml go mod sum"
