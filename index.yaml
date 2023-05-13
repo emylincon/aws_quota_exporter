@@ -2,6 +2,16 @@ apiVersion: v1
 entries:
   aqe:
     - apiVersion: v2
+      appVersion: 0.1.2
+      created: "2023-05-13T07:55:09.635347537Z"
+      description: A Helm chart for aws quota exporter
+      digest: 27bd8f009c4ea003b3c8a57156cf7cc89f8931d9dd8da36b77304a7d3f6a2920
+      name: aqe
+      type: application
+      urls:
+        - https://github.com/emylincon/aws_quota_exporter/releases/download/v0.1.2/helm-chart-aqe-0.0.2.tgz
+      version: 0.0.2
+    - apiVersion: v2
       appVersion: 0.1.1
       created: "2023-05-07T17:59:34.556067755Z"
       description: A Helm chart for aws quota exporter
@@ -21,4 +31,4 @@ entries:
       urls:
         - https://github.com/emylincon/aws_quota_exporter/releases/download/v0.1.0/helm-chart-aqe-0.0.0.tgz
       version: 0.0.0
-generated: "2023-05-07T17:59:34.555360742Z"
+generated: "2023-05-13T07:55:09.632861216Z"
