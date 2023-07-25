@@ -9,6 +9,7 @@ tasks:
   up:
     desc: "package and deploy helm chart"
     cmds:
+      - helm dependency update kubernetes/helm/aqe
       - helm package kubernetes/helm/aqe -d packages/ --version {{.VERSION}}
       - helm install -f values.test aqe packages/aqe-{{.VERSION}}.tgz
     silent: true
