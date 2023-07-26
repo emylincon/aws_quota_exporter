@@ -30,8 +30,7 @@
     "panels": [
         {
             "datasource": {
-                "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "type": "prometheus"
             },
             "fieldConfig": {
                 "defaults": {
@@ -78,8 +77,7 @@
             "targets": [
                 {
                     "datasource": {
-                        "type": "prometheus",
-                        "uid": "PBFA97CFB590B2093"
+                        "type": "prometheus"
                     },
                     "editorMode": "builder",
                     "expr": "sum by(region) (aws_quota_cloudformation_module_limit_per_account)",
@@ -93,8 +91,7 @@
         },
         {
             "datasource": {
-                "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "type": "prometheus"
             },
             "fieldConfig": {
                 "defaults": {
@@ -142,8 +139,7 @@
             "targets": [
                 {
                     "datasource": {
-                        "type": "prometheus",
-                        "uid": "PBFA97CFB590B2093"
+                        "type": "prometheus"
                     },
                     "editorMode": "builder",
                     "expr": "sum by(region) (aws_quota_cloudformation_stack_count)",
@@ -157,8 +153,7 @@
         },
         {
             "datasource": {
-                "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "type": "prometheus"
             },
             "fieldConfig": {
                 "defaults": {
@@ -205,8 +200,7 @@
             "targets": [
                 {
                     "datasource": {
-                        "type": "prometheus",
-                        "uid": "PBFA97CFB590B2093"
+                        "type": "prometheus"
                     },
                     "editorMode": "builder",
                     "expr": "sum by(region) (aws_quota_lambda_concurrent_executions)",
@@ -220,8 +214,7 @@
         },
         {
             "datasource": {
-                "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "type": "prometheus"
             },
             "fieldConfig": {
                 "defaults": {
@@ -270,8 +263,7 @@
             "targets": [
                 {
                     "datasource": {
-                        "type": "prometheus",
-                        "uid": "PBFA97CFB590B2093"
+                        "type": "prometheus"
                     },
                     "editorMode": "builder",
                     "expr": "sum by(region) (aws_quota_lambda_function_and_layer_storage)",
