@@ -2,6 +2,25 @@ apiVersion: v1
 entries:
   aqe:
     - apiVersion: v2
+      appVersion: 0.1.3
+      created: "2023-07-26T12:17:10.030164584Z"
+      dependencies:
+        - condition: prometheus.enabled
+          name: prometheus
+          repository: https://prometheus-community.github.io/helm-charts
+          version: 23.1.0
+        - condition: grafana.enabled
+          name: grafana
+          repository: file://charts/grafana
+          version: 6.58.4
+      description: A Helm chart for aws quota exporter
+      digest: e303d9e479c291f55fb1471b60651602ebaef103793858f412c50ea67f4b8c32
+      name: aqe
+      type: application
+      urls:
+        - https://github.com/emylincon/aws_quota_exporter/releases/download/v0.1.3/helm-chart-aqe-0.0.3.tgz
+      version: 0.0.3
+    - apiVersion: v2
       appVersion: 0.1.2
       created: "2023-05-13T07:55:09.635347537Z"
       description: A Helm chart for aws quota exporter
@@ -31,4 +50,4 @@ entries:
       urls:
         - https://github.com/emylincon/aws_quota_exporter/releases/download/v0.1.0/helm-chart-aqe-0.0.0.tgz
       version: 0.0.0
-generated: "2023-05-13T07:55:09.632861216Z"
+generated: "2023-07-26T12:17:10.015514297Z"

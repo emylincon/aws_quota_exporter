@@ -104,3 +104,70 @@ secret:
   # base64 encoded secrets
   AWS_ACCESS_KEY_ID: QVdTX0FDQ0VTU19LRVlfSUQK
   AWS_SECRET_ACCESS_KEY: QVdTX1NFQ1JFVF9BQ0NFU1NfS0VZCg==
+
+prometheus:
+  enabled: true
+  serverFiles:
+    prometheus.yml:
+      scrape_configs:
+        # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
+        - job_name: prometheus
+          # Override the global default and scrape targets from this job every 5 seconds.
+          scrape_interval: 5s
+          static_configs:
+            - targets: ["localhost:9090"]
+        - job_name: "aws_quota_exporter"
+          # Override the global default and scrape targets from this job every 5 seconds.
+          scrape_interval: 15s
+          static_configs:
+            - targets: ["aqe.default.svc.cluster.local:10100"]
+  kube-state-metrics:
+    enabled: false
+  prometheus-node-exporter:
+    enabled: false
+  prometheus-pushgateway:
+    enabled: false
+  alertmanager:
+    enabled: false
+
+grafana:
+  enabled: true
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+        - name: prometheus
+          type: prometheus
+          # Access mode - proxy (server in the UI) or direct (browser in the UI).
+          access: proxy
+          url: http://prometheus.default.svc.cluster.local:9090
+          orgId: 1
+          editable: true
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+        - name: "prometheus"
+          orgId: 1
+          folder: ""
+          type: file
+          disableDeletion: false
+          editable: true
+          options:
+            path: /var/lib/grafana/dashboards/prometheus
+  dashboards:
+    prometheus:
+      quotas:
+        file: dashboards/quotas.json
+  grafana.ini:
+    auth.basic:
+      enabled: false
+    auth.grafana_com:
+      enabled: false
+    auth.anonymous:
+      enabled: true
+    org_name: true
+    org_role: Admin
+    hide_version: true
+  # adminUser: admin
+  # adminPassword: admin

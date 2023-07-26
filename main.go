@@ -40,12 +40,12 @@ func main() {
 	)
 	flag.Parse()
 
-	version := "0.1.2"
+	version := "0.1.3"
 	if *Version {
 		fmt.Printf("aqe version %s %s/%s \n", version, runtime.GOOS, runtime.GOARCH)
 		os.Exit(0)
 	}
-
+	// create logger
 	logger := pkg.NewLogger(*logFormatType, *logFolder, *logLevel).With("version", version)
 	slog.SetDefault(logger)
 	start := time.Now()
