@@ -16,6 +16,13 @@ import (
 	"golang.org/x/exp/slog"
 )
 
+// values populated by goreleaser
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "2023-09-03T17:54:45Z"
+)
+
 func closeHandler() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
@@ -26,6 +33,15 @@ func closeHandler() {
 		os.RemoveAll(pkg.CacheFolder)
 		os.Exit(0)
 	}()
+}
+
+func printVersion() {
+	dt, err := time.Parse(time.RFC3339, date)
+	if err == nil {
+		date = dt.Format(time.UnixDate)
+	}
+	fmt.Println("App:           AWS Quota Exporter (AQE)")
+	fmt.Printf("Version: %9s\nBuilt:         %s\nPlatform: %11s/%s\nCommit: %11s\nGo Version: %11s\n", version, date, runtime.GOOS, runtime.GOARCH, commit, runtime.Version())
 }
 
 func main() {
@@ -40,9 +56,8 @@ func main() {
 	)
 	flag.Parse()
 
-	version := "0.1.4"
 	if *Version {
-		fmt.Printf("aqe version %s %s/%s \n", version, runtime.GOOS, runtime.GOARCH)
+		printVersion()
 		os.Exit(0)
 	}
 	// create logger
