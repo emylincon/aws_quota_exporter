@@ -11,24 +11,8 @@ import (
 	"golang.org/x/exp/slog"
 )
 
-var replacer = strings.NewReplacer(
-	" ", "_",
-	",", "_",
-	"\t", "_",
-	"/", "_",
-	"\\", "_",
-	".", "_",
-	"-", "_",
-	":", "_",
-	"=", "_",
-	"“", "_",
-	"@", "_",
-	"<", "_",
-	">", "_",
-	"%", "_percent",
-	"(", "",
-	")", "",
-)
+var invalidPrometheusChars = regexp.MustCompile(`[^a-zA-Z0-9_]`)
+
 var splitRegexp = regexp.MustCompile(`([a-z0-9])([A-Z])`)
 var logGroup = slog.Group("request",
 	slog.String("method", "GET"),
@@ -159,7 +143,7 @@ func PromStringTag(text string, labelsSnakeCase bool) (bool, string) {
 }
 
 func sanitize(text string) string {
-	return replacer.Replace(text)
+	return invalidPrometheusChars.ReplaceAllString(text, "_")
 }
 
 func splitString(text string) string {
