@@ -16,6 +16,12 @@ import (
 	"golang.org/x/exp/slog"
 )
 
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+)
+
 func closeHandler() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
@@ -40,9 +46,10 @@ func main() {
 	)
 	flag.Parse()
 
-	version := "0.1.4"
+	version1 := "0.1.4"
 	if *Version {
-		fmt.Printf("aqe version %s %s/%s \n", version, runtime.GOOS, runtime.GOARCH)
+		fmt.Printf("aqe version %s %s/%s (%s)\n", version1, runtime.GOOS, runtime.GOARCH, version)
+		fmt.Printf("commit %s \nDate %s\n", commit, date)
 		os.Exit(0)
 	}
 	// create logger
