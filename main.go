@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/emylincon/aws_quota_exporter/pkg"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -40,8 +41,22 @@ func printVersion() {
 	if err == nil {
 		date = dt.Format(time.UnixDate)
 	}
-	fmt.Println("App:           AWS Quota Exporter (AQE)")
-	fmt.Printf("Version: %9s\nBuilt:         %s\nPlatform: %11s/%s\nCommit: %11s\nGo Version: %11s\n", version, date, runtime.GOOS, runtime.GOARCH, commit, runtime.Version())
+	appversion := struct {
+		App       string
+		Version   string
+		Date      string
+		Platform  string
+		Commit    string
+		GoVersion string
+	}{
+		App:       "AWS Quota Exporter (AQE)",
+		Version:   version,
+		Date:      date,
+		Platform:  fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
+		Commit:    commit,
+		GoVersion: runtime.Version(),
+	}
+	fmt.Println(awsutil.Prettify(appversion))
 }
 
 func main() {

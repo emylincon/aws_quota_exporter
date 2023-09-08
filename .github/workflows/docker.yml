@@ -39,8 +39,8 @@ jobs:
         run: container-structure-test test --config docker/tests.yaml --image ${{ env.TEST_IMAGE }}
 
       - name: Build and Publish docker image
-        run: docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7 -t ${{ env.IMAGE_NAME }}:${{ github.ref_name }} -f docker/Dockerfile --push .
+        run: docker buildx build --build-arg="APP_VERSION=${{ github.ref_name }}" --build-arg="APP_COMMIT=${{ github.sha }}" --platform linux/amd64,linux/arm64,linux/arm/v7 -t ${{ env.IMAGE_NAME }}:${{ github.ref_name }} -f docker/Dockerfile --push .
 
       - name: Build and Publish docker image for tags
         if: github.ref_type == 'tag'
-        run: docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7 -t ${{ env.IMAGE_NAME }}:latest -f docker/Dockerfile --push .
+        run: docker buildx build --build-arg="APP_VERSION=${{ github.ref_name }}" --build-arg="APP_COMMIT=${{ github.sha }}" --platform linux/amd64,linux/arm64,linux/arm/v7 -t ${{ env.IMAGE_NAME }}:latest -f docker/Dockerfile --push .
