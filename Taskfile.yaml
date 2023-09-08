@@ -49,3 +49,9 @@ tasks:
     desc: "build docker compose images"
     cmds:
       - docker-compose build
+  docker-build:
+    desc: "build docker image"
+    cmds:
+      - |
+        commit=$(git log --format="%H" -n 1)
+        docker build --build-arg="APP_VERSION=dev" --build-arg="APP_COMMIT=${commit}" -t ugwuanyi/aqe:dev -f docker/Dockerfile .
