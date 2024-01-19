@@ -52,9 +52,11 @@ spec:
           env:
             - name: AWS_REGION
               value: "{{ .Values.env.AWS_REGION }}"
+          {{- if and .Values.secret (and (.Values.secret.AWS_ACCESS_KEY_ID) (.Values.secret.AWS_SECRET_ACCESS_KEY)) }}
           envFrom:
             - secretRef:
                 name: {{ include "aqe.fullname" . }}
+          {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}

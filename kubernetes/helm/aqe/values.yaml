@@ -101,9 +101,9 @@ env:
   AWS_REGION: us-west-1
 
 secret:
-  # base64 encoded secrets
-  AWS_ACCESS_KEY_ID: QVdTX0FDQ0VTU19LRVlfSUQK
-  AWS_SECRET_ACCESS_KEY: QVdTX1NFQ1JFVF9BQ0NFU1NfS0VZCg==
+  # base64 encoded secrets (leave empty when using OIDC / kiam / kube2iam etc)
+  AWS_ACCESS_KEY_ID: ""
+  AWS_SECRET_ACCESS_KEY: ""
 
 prometheus:
   enabled: true
