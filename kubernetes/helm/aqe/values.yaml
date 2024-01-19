@@ -38,6 +38,17 @@ securityContext:
   # runAsNonRoot: true
   # runAsUser: 1000
 
+livenessProbe:
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 60 # might need increasing when a large number of jobs is specified
+readinessProbe:
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 60 # might need increasing when a large number of jobs is specified
+
 service:
   type: ClusterIP
   port: 10100
