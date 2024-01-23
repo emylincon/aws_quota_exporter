@@ -116,6 +116,16 @@ secret:
   AWS_ACCESS_KEY_ID: ""
   AWS_SECRET_ACCESS_KEY: ""
 
+serviceMonitor:
+  # Specifies whether a ServiceMonitor should be created
+  create: false
+  interval:
+  scrapeTimeout:
+  namespace:
+  additionalLabels: {}
+  metricRelabelings: []
+  relabelings: []
+
 prometheus:
   enabled: true
   serverFiles:

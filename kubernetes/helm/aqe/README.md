@@ -88,6 +88,13 @@ A Helm chart for aws quota exporter
 | serviceAccount.annotations | object | `{}` |  |
 | serviceAccount.create | bool | `false` |  |
 | serviceAccount.name | string | `""` |  |
+| serviceMonitor.additionalLabels | object | `{}` |  |
+| serviceMonitor.create | bool | `false` |  |
+| serviceMonitor.interval | string | `nil` |  |
+| serviceMonitor.metricRelabelings | list | `[]` |  |
+| serviceMonitor.namespace | string | `nil` |  |
+| serviceMonitor.relabelings | list | `[]` |  |
+| serviceMonitor.scrapeTimeout | string | `nil` |  |
 | tolerations | list | `[]` |  |
 
 ----------------------------------------------
