@@ -4,6 +4,7 @@ package pkg
 import (
 	"context"
 	"fmt"
+	"maps"
 	"os"
 	"strconv"
 	"strings"
@@ -145,6 +146,7 @@ func (s *Scraper) getAWSConfig(role string) aws.Config {
 	cfg.Credentials = aws.NewCredentialsCache(creds)
 	return cfg
 }
+
 func validateRoleARN(role string) bool {
 	if arn.IsARN(role) {
 		arnObj, err := arn.Parse(role)
@@ -164,34 +166,67 @@ func Transform(quotas *sq.ListServiceQuotasOutput, defaultQuotas *sq.ListAWSDefa
 	check := map[string]bool{}
 
 	for _, v := range quotas.Quotas {
-		metricName := createMetricName(*v.ServiceCode, *v.QuotaName)
+
+		metricName, metricDescription, extraLabels := convertQuotaToMetric(*v.ServiceCode, *v.QuotaName)
+
+		labels := map[string]string{"adjustable": strconv.FormatBool(v.Adjustable), "global_quota": strconv.FormatBool(v.GlobalQuota), "unit": *v.Unit, "region": region, "account": account}
+		maps.Copy(labels, extraLabels)
 
 		metric := &PrometheusMetric{
 			Name:   metricName,
 			Value:  *v.Value,
-			Labels: map[string]string{"adjustable": strconv.FormatBool(v.Adjustable), "global_quota": strconv.FormatBool(v.GlobalQuota), "unit": *v.Unit, "region": region, "account": account},
-			Desc:   *v.QuotaName,
+			Labels: labels,
+			Desc:   metricDescription,
 		}
+
 		metrics = append(metrics, metric)
 		check[metricName] = true
 	}
+
 	for _, d := range defaultQuotas.Quotas {
-		metricName := createMetricName(*d.ServiceCode, *d.QuotaName)
+
+		metricName, metricDescription, extraLabels := convertQuotaToMetric(*d.ServiceCode, *d.QuotaName)
+
+		labels := map[string]string{"adjustable": strconv.FormatBool(d.Adjustable), "global_quota": strconv.FormatBool(d.GlobalQuota), "unit": *d.Unit, "region": region, "account": account}
+		maps.Copy(labels, extraLabels)
+
 		if _, ok := check[metricName]; !ok {
 			metric := &PrometheusMetric{
 				Name:   metricName,
 				Value:  *d.Value,
-				Labels: map[string]string{"adjustable": strconv.FormatBool(d.Adjustable), "global_quota": strconv.FormatBool(d.GlobalQuota), "unit": *d.Unit, "region": region, "account": account},
-				Desc:   *d.QuotaName,
+				Labels: labels,
+				Desc:   metricDescription,
 			}
+
 			metrics = append(metrics, metric)
 		}
 	}
 	return metrics, nil
 }
 
-func createMetricName(serviceCode, quotaName string) string {
-	return fmt.Sprintf("aws_quota_%s_%s", serviceCode, PromString(quotaName))
+func convertQuotaToMetric(serviceCode string, quotaName string) (string, string, map[string]string) {
+	labels := make(map[string]string)
+
+	// check if the metric has a known transformation
+	if _, ok := transformers[serviceCode]; ok {
+		for _, transformer := range transformers[serviceCode] {
+			matches := transformer.re.FindStringSubmatch(quotaName)
+
+			// if transformer found a match, extract all named capture groups into labels
+			if len(matches) > 0 {
+				for _, label := range transformer.re.SubexpNames() {
+					if label != "" {
+						value := transformer.re.SubexpIndex(label)
+						labels[label] = matches[value]
+					}
+				}
+
+				return fmt.Sprintf("aws_quota_%s_%s", serviceCode, PromString(transformer.name)), transformer.name, labels
+			}
+		}
+	}
+
+	return fmt.Sprintf("aws_quota_%s_%s", serviceCode, PromString(quotaName)), quotaName, labels
 }
 
 func getServiceQuotas(ctx context.Context, region, account string, sqInput *sq.ListServiceQuotasInput, client *sq.Client, c chan chanData) {
