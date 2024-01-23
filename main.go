@@ -108,7 +108,10 @@ func main() {
 	slog.Info("Registering scrappers")
 	for _, job := range qcl.Jobs {
 		pc := pkg.NewPrometheusCollector(s.CreateScraper(job, *cacheDuration))
-		reg.MustRegister(pc)
+		err := reg.Register(pc)
+		if err != nil {
+			slog.Error("Failed to register metrics: "+err.Error(), "serviceCode", job.ServiceCode, "regions", job.Regions, "role", job.Role)
+		}
 	}
 
 	mux := http.NewServeMux()
