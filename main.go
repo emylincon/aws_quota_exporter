@@ -10,10 +10,18 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/emylincon/aws_quota_exporter/pkg"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/exp/slog"
+)
+
+// values populated by goreleaser
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "2023-09-03T17:54:45Z"
 )
 
 func closeHandler() {
@@ -28,6 +36,29 @@ func closeHandler() {
 	}()
 }
 
+func printVersion() {
+	dt, err := time.Parse(time.RFC3339, date)
+	if err == nil {
+		date = dt.Format(time.UnixDate)
+	}
+	appversion := struct {
+		App       string
+		Version   string
+		Date      string
+		Platform  string
+		Commit    string
+		GoVersion string
+	}{
+		App:       "AWS Quota Exporter (AQE)",
+		Version:   version,
+		Date:      date,
+		Platform:  fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
+		Commit:    commit,
+		GoVersion: runtime.Version(),
+	}
+	fmt.Println(awsutil.Prettify(appversion))
+}
+
 func main() {
 	var (
 		configFile    = flag.String("config.file", "/etc/aqe/config.yml", "Path to configuration file.")
@@ -40,9 +71,8 @@ func main() {
 	)
 	flag.Parse()
 
-	version := "0.1.4"
 	if *Version {
-		fmt.Printf("aqe version %s %s/%s \n", version, runtime.GOOS, runtime.GOARCH)
+		printVersion()
 		os.Exit(0)
 	}
 	// create logger
@@ -78,7 +108,10 @@ func main() {
 	slog.Info("Registering scrappers")
 	for _, job := range qcl.Jobs {
 		pc := pkg.NewPrometheusCollector(s.CreateScraper(job, *cacheDuration))
-		reg.MustRegister(pc)
+		err := reg.Register(pc)
+		if err != nil {
+			slog.Error("Failed to register metrics: "+err.Error(), "serviceCode", job.ServiceCode, "regions", job.Regions, "role", job.Role)
+		}
 	}
 
 	mux := http.NewServeMux()

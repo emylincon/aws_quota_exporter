@@ -92,3 +92,37 @@ func TestScraper_CreateScraper(t *testing.T) {
 		})
 	}
 }
+
+func Test_validateRoleARN(t *testing.T) {
+	type args struct {
+		role string
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			name: "Valid role ARN",
+			args: args{role: "arn:aws:iam::012345678901:role/aws-quota-exporter"},
+			want: true,
+		},
+		{
+			name: "Invalid role ARN",
+			args: args{role: "arn:aws:iam::012345678901:user/aws-quota-exporter"},
+			want: false,
+		},
+		{
+			name: "Not an ARN",
+			args: args{role: "foo"},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := validateRoleARN(tt.args.role); got != tt.want {
+				t.Errorf("validateRoleARN() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

@@ -1,10 +1,13 @@
 FROM golang:alpine as builder
 
+ARG APP_VERSION="0.0.0"
+ARG APP_COMMIT="latest"
+
 WORKDIR /opt
 
 COPY . .
 
-RUN go build -o aqe .
+RUN go build -o aqe -ldflags="-X 'main.version=${APP_VERSION}' -X 'main.date=$(date "+%Y-%m-%dT%TZ")' -X 'main.commit=${APP_COMMIT}'" .
 
 FROM alpine:latest
 

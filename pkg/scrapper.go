@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -150,11 +151,11 @@ func validateRoleARN(role string) bool {
 		if err != nil {
 			return false
 		}
-		if arnObj.Resource != "role" {
-			return false
+		if strings.HasPrefix(arnObj.Resource, "role/") {
+			return true
 		}
 	}
-	return true
+	return false
 }
 
 // Transform to prometheus format
