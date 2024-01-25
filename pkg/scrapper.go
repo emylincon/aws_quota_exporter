@@ -42,26 +42,34 @@ func NewScraper() (*Scraper, error) {
 var maxResults int32 = 100
 
 // CreateScraper Scrape Quotas from AWS
-func (s *Scraper) CreateScraper(job JobConfig, cacheExpiryDuration time.Duration) func() ([]*PrometheusMetric, error) {
-	// create new cache for service
-	cacheStore := NewCache(job.ServiceCode+".json", cacheExpiryDuration)
+func (s *Scraper) CreateScraper(job JobConfig, cacheDuration *time.Duration) func() ([]*PrometheusMetric, error) {
+
 	cfg := s.getAWSConfig(job.Role)
 	AccountID := getAWSAccountID(cfg)
+
+	// create new cache for service
+	cacheStore, err := NewCache(job.ServiceCode, *cacheDuration)
+	if err != nil {
+		slog.Warn(fmt.Sprintf("Cache disabled for %s (account %s)", job.ServiceCode, AccountID))
+	}
 
 	return func() ([]*PrometheusMetric, error) {
 		// logging start metrics collection
 		l := slog.With("serviceCode", job.ServiceCode, "regions", job.Regions, logGroup)
 		start := time.Now()
-		cacheData, err := cacheStore.Read()
-		if err == nil {
-			l.Info("Metrics Read from cache",
-				"duration", time.Since(start),
-			)
-			return cacheData, nil
-		} else if err == ErrCacheExpired {
-			l.Debug("Cache Read", "msg", err)
-		} else {
-			l.Debug("Cache Read Error", "error", err)
+
+		if cacheStore != nil {
+			cacheData, err := cacheStore.Read()
+			if err == nil {
+				l.Info("Metrics Read from cache",
+					"duration", time.Since(start),
+				)
+				return cacheData, nil
+			} else if err == ErrCacheExpired {
+				l.Debug("Cache Read", "msg", err)
+			} else {
+				l.Debug("Cache Read Error", "error", err)
+			}
 		}
 
 		l.Info("Scrapping metrics")
@@ -88,10 +96,14 @@ func (s *Scraper) CreateScraper(job JobConfig, cacheExpiryDuration time.Duration
 
 			metricList = append(metricList, data.metrics...)
 		}
-		err = cacheStore.Write(metricList)
-		if err != nil {
-			l.Debug("Cache Write error", "error", err)
+
+		if cacheStore != nil {
+			err = cacheStore.Write(metricList)
+			if err != nil {
+				l.Debug("Cache Write error", "error", err)
+			}
 		}
+
 		l.Info("Metrics Scrapped",
 			"duration", time.Since(start),
 		)
