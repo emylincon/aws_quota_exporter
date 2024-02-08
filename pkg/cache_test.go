@@ -1,7 +1,7 @@
 package pkg
 
 import (
-	"reflect"
+	"strings"
 	"testing"
 	"time"
 )
@@ -31,7 +31,14 @@ func TestNewCache(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewCache(tt.args.fileName, tt.args.lifeTime); !reflect.DeepEqual(got.FileName, tt.want.FileName) {
+			var err error
+			got, err := NewCache(tt.args.fileName, tt.args.lifeTime)
+
+			if err != nil {
+				t.Error("NewCache() errored out: ", err.Error())
+			}
+
+			if !strings.HasPrefix(got.FileName, tt.want.FileName) {
 				t.Errorf("NewCache() = %v, want %v", got, tt.want)
 			}
 		})
@@ -78,9 +85,14 @@ func FuzzNewCache(f *testing.F) {
 	}
 	f.Fuzz(
 		func(t *testing.T, filename string, lifetime int) {
-			c := NewCache(filename, time.Duration(lifetime))
+			c, err := NewCache(filename, time.Duration(lifetime))
+
+			if err != nil {
+				t.Error("NewCache() errored out:", err.Error())
+			}
+
 			want := CacheFolder + filename
-			if c.FileName != want {
+			if !strings.HasPrefix(c.FileName, want) {
 				t.Errorf("NewCache().FileName = %v, want %v", c.FileName, want)
 			}
 		},

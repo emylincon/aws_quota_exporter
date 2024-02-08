@@ -84,14 +84,6 @@ func main() {
 	// Handle keyboard interrupt
 	closeHandler()
 
-	// check if cache folder exists
-	if _, err := os.Stat(pkg.CacheFolder); os.IsNotExist(err) {
-		err = os.MkdirAll(pkg.CacheFolder, 0755)
-		if err != nil {
-			slog.Error("Error creating cache folder", "error", err)
-		}
-	}
-
 	// Make Prometheus client aware of our collectors.
 	qcl, err := pkg.NewQuotaConfig(*configFile)
 	if err != nil {
@@ -107,8 +99,9 @@ func main() {
 	reg := prometheus.NewRegistry()
 	slog.Info("Registering scrappers")
 	for _, job := range qcl.Jobs {
-		pc := pkg.NewPrometheusCollector(s.CreateScraper(job, *cacheDuration))
-		err := reg.Register(pc)
+
+		pc := pkg.NewPrometheusCollector(s.CreateScraper(job, cacheDuration))
+		err = reg.Register(pc)
 		if err != nil {
 			slog.Error("Failed to register metrics: "+err.Error(), "serviceCode", job.ServiceCode, "regions", job.Regions, "role", job.Role)
 		}

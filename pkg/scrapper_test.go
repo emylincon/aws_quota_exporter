@@ -78,7 +78,8 @@ func TestScraper_CreateScraper(t *testing.T) {
 			s := &Scraper{
 				cfg: tt.fields.cfg,
 			}
-			got := s.CreateScraper(tt.args.job, tt.args.cacheExpiryDuration)
+
+			got := s.CreateScraper(tt.args.job, &tt.args.cacheExpiryDuration)
 			d, derr := got()
 			r, terr := tt.want()
 			if (derr != nil) != tt.wantErr {
