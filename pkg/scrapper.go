@@ -15,6 +15,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws/arn"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
+	"github.com/aws/aws-sdk-go-v2/service/cloudwatch"
+	"github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
+
 	sq "github.com/aws/aws-sdk-go-v2/service/servicequotas"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"golang.org/x/exp/slog"
@@ -78,12 +81,15 @@ func (s *Scraper) CreateScraper(job JobConfig, cacheDuration *time.Duration) fun
 		ctx := context.Background()
 		cfg := s.getAWSConfig(job.Role) // get credentials incase it expires
 		sclient := sq.NewFromConfig(cfg)
+		cwClient := cloudwatch.NewFromConfig(cfg)
+
 		input := sq.ListServiceQuotasInput{ServiceCode: &job.ServiceCode, MaxResults: &maxResults}
+
 		metricList := []*PrometheusMetric{}
 		c := make(chan chanData)
 		// create goroutine workers
 		for _, region := range job.Regions {
-			go getServiceQuotas(ctx, region, AccountID, &input, sclient, c)
+			go getServiceQuotas(ctx, region, AccountID, &input, sclient, cwClient, c)
 		}
 		// retrieve channel results from goroutines
 		for i := 0; i < len(job.Regions); i++ {
@@ -181,7 +187,13 @@ func Transform(quotas *sq.ListServiceQuotasOutput, defaultQuotas *sq.ListAWSDefa
 
 		metricName, metricDescription, extraLabels := convertQuotaToMetric(*v.ServiceCode, *v.QuotaName)
 
-		labels := map[string]string{"adjustable": strconv.FormatBool(v.Adjustable), "global_quota": strconv.FormatBool(v.GlobalQuota), "unit": *v.Unit, "region": region, "account": account}
+		labels := map[string]string{
+			"adjustable":   strconv.FormatBool(v.Adjustable),
+			"global_quota": strconv.FormatBool(v.GlobalQuota),
+			"unit":         *v.Unit,
+			"region":       region,
+			"account":      account,
+		}
 		maps.Copy(labels, extraLabels)
 
 		metric := &PrometheusMetric{
@@ -199,7 +211,13 @@ func Transform(quotas *sq.ListServiceQuotasOutput, defaultQuotas *sq.ListAWSDefa
 
 		metricName, metricDescription, extraLabels := convertQuotaToMetric(*d.ServiceCode, *d.QuotaName)
 
-		labels := map[string]string{"adjustable": strconv.FormatBool(d.Adjustable), "global_quota": strconv.FormatBool(d.GlobalQuota), "unit": *d.Unit, "region": region, "account": account}
+		labels := map[string]string{
+			"adjustable":   strconv.FormatBool(d.Adjustable),
+			"global_quota": strconv.FormatBool(d.GlobalQuota),
+			"unit":         *d.Unit,
+			"region":       region,
+			"account":      account,
+		}
 		maps.Copy(labels, extraLabels)
 
 		if _, ok := check[metricName]; !ok {
@@ -241,25 +259,26 @@ func convertQuotaToMetric(serviceCode string, quotaName string) (string, string,
 	return fmt.Sprintf("aws_quota_%s_%s", serviceCode, PromString(quotaName)), quotaName, labels
 }
 
-func getServiceQuotas(ctx context.Context, region, account string, sqInput *sq.ListServiceQuotasInput, client *sq.Client, c chan chanData) {
-	opts := func(o *sq.Options) { o.Region = region }
+func getServiceQuotas(ctx context.Context, region, account string, sqInput *sq.ListServiceQuotasInput, client *sq.Client, cwClient *cloudwatch.Client, c chan chanData) {
+	sqOpts := func(o *sq.Options) { o.Region = region }
 	asqInput := &sq.ListAWSDefaultServiceQuotasInput{ServiceCode: sqInput.ServiceCode, MaxResults: &maxResults}
 	var wg sync.WaitGroup
 	var r *sq.ListServiceQuotasOutput
 	var d *sq.ListAWSDefaultServiceQuotasOutput
+
 	errs := [2]error{}
 
 	wg.Add(2)
 
 	// Get applied Quotas
 	go func() {
-		r, errs[0] = getListServiceQuotas(ctx, client, opts, sqInput)
+		r, errs[0] = getListServiceQuotas(ctx, client, sqOpts, sqInput)
 		wg.Done()
 	}()
 
 	// Get default Quotas
 	go func() {
-		d, errs[1] = getDefaultListServiceQuotas(ctx, client, opts, asqInput)
+		d, errs[1] = getDefaultListServiceQuotas(ctx, client, sqOpts, asqInput)
 		wg.Done()
 	}()
 
@@ -276,12 +295,87 @@ func getServiceQuotas(ctx context.Context, region, account string, sqInput *sq.L
 
 	}
 
+	// Get usage metrics for found quotas and default quotas
+	usageMetrics, err := getUsageMetrics(ctx, cwClient, r, d, account, region)
+	if err != nil {
+		fmt.Println("fml:", err.Error())
+	}
+
 	m, err := Transform(r, d, region, account)
+
 	data := chanData{
-		metrics: m,
+		metrics: append(m, usageMetrics...),
 		err:     err,
 	}
 	c <- data
+}
+
+func getUsageMetrics(ctx context.Context, cwClient *cloudwatch.Client, quotas *sq.ListServiceQuotasOutput, defaultQuotas *sq.ListAWSDefaultServiceQuotasOutput, account string, region string) ([]*PrometheusMetric, error) {
+	var metrics []*PrometheusMetric
+	cwOpts := func(c *cloudwatch.Options) { c.Region = region }
+
+	for _, quota := range append(quotas.Quotas, defaultQuotas.Quotas...) {
+		if quota.UsageMetric != nil {
+
+			var dim []types.Dimension
+			var stats []types.Statistic
+
+			for k, v := range quota.UsageMetric.MetricDimensions {
+				dim = append(dim, types.Dimension{Name: aws.String(k), Value: aws.String(v)})
+			}
+
+			stats = append(stats, types.Statistic(*quota.UsageMetric.MetricStatisticRecommendation))
+
+			// use 1hr timespan and 1hr period to fetch only a single datapoint
+			start := time.Now().Add(-time.Hour * time.Duration(1))
+			end := time.Now()
+
+			input := &cloudwatch.GetMetricStatisticsInput{
+				StartTime:  &start,
+				EndTime:    &end,
+				Period:     aws.Int32(int32(3600)),
+				Dimensions: dim,
+				MetricName: quota.UsageMetric.MetricName,
+				Namespace:  quota.UsageMetric.MetricNamespace,
+				Statistics: stats,
+			}
+
+			metricStatistics, err := cwClient.GetMetricStatistics(ctx, input, cwOpts)
+
+			if err != nil {
+				return nil, err
+			}
+
+			metricValue := float64(0) // initialise as zero because if a quota exists but there are no instances there will be no datapoints
+			if len(metricStatistics.Datapoints) > 0 {
+				metricValue = *metricStatistics.Datapoints[0].Maximum
+			}
+
+			// convert to PrometheusMetric
+			metricName, metricDescription, extraLabels := convertQuotaToMetric(*quota.ServiceCode, *quota.QuotaName)
+
+			// TODO: naming is hard
+			metricName = metricName + "_usage"
+
+			// TODO: ideally we should be able use join queries to create alerts - maybe including the quota unit or ARN in labels?
+			labels := map[string]string{
+				"unit":    *quota.Unit,
+				"region":  region,
+				"account": account,
+			}
+			maps.Copy(labels, extraLabels)
+
+			metric := &PrometheusMetric{
+				Name:   metricName,
+				Value:  metricValue,
+				Labels: labels,
+				Desc:   metricDescription,
+			}
+
+			metrics = append(metrics, metric)
+		}
+	}
+	return metrics, nil
 }
 
 func getListServiceQuotas(ctx context.Context, client *sq.Client, opts func(o *sq.Options), sqInput *sq.ListServiceQuotasInput) (*sq.ListServiceQuotasOutput, error) {
