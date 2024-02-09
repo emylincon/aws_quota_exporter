@@ -126,6 +126,16 @@ serviceMonitor:
   metricRelabelings: []
   relabelings: []
 
+serviceMonitor:
+  # Specifies whether a ServiceMonitor should be created
+  create: false
+  interval:
+  scrapeTimeout:
+  namespace:
+  additionalLabels: {}
+  metricRelabelings: []
+  relabelings: []
+
 prometheus:
   enabled: true
   serverFiles:
