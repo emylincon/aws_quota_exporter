@@ -3,12 +3,14 @@ module github.com/emylincon/aws_quota_exporter
 go 1.20
 
 require (
+	github.com/adrg/strutil v0.3.1
 	github.com/aws/aws-sdk-go v1.44.245
 	github.com/aws/aws-sdk-go-v2 v1.17.7
 	github.com/aws/aws-sdk-go-v2/config v1.18.19
 	github.com/aws/aws-sdk-go-v2/credentials v1.13.18
 	github.com/aws/aws-sdk-go-v2/service/servicequotas v1.14.7
 	github.com/aws/aws-sdk-go-v2/service/sts v1.18.7
+	github.com/emylincon/golist v1.4.5
 	github.com/prometheus/client_golang v1.14.0
 	github.com/prometheus/common v0.37.0
 	golang.org/x/exp v0.0.0-20230321023759-10a507213a29
