@@ -114,8 +114,8 @@ func (g *Grouping) GroupMetrics(quotas []sqTypes.ServiceQuota) (map[string][]Met
 					response[key] = append(response[key], MetricGroup{Quota: q})
 					if len(response[key]) == 2 {
 						commonStr := g.common(*response[key][0].Quota.QuotaName, *response[key][1].Quota.QuotaName)
-						if commonStr == "" || len(strings.Split(commonStr, " ")) <= 2 {
-							response[key] = response[key][:len(response[key])-1]
+						if commonStr == "" || len(strings.Split(commonStr, " ")) <= 2 { // if the first words of metric names are not the same or common is only two words then skip
+							response[key] = response[key][:len(response[key])-1] // remove added metric
 							continue
 						}
 						for i := 0; i < 2; i++ {
@@ -126,7 +126,7 @@ func (g *Grouping) GroupMetrics(quotas []sqTypes.ServiceQuota) (map[string][]Met
 						}
 					} else if len(response[key]) > 2 {
 						_id := len(response[key]) - 1
-						if strings.Split(key, " ")[0] != strings.Split(*response[key][_id].Quota.QuotaName, " ")[0] {
+						if strings.Split(key, " ")[0] != strings.Split(*response[key][_id].Quota.QuotaName, " ")[0] { // if the first words of metric names are not the same then skip
 							continue
 						}
 						response[key][_id].Label = g.diff(*response[key][_id].Quota.QuotaName, key)
