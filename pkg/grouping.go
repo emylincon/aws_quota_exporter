@@ -34,7 +34,7 @@ func NewGrouping(maxSimilarity float64, region, account string) *Grouping {
 		maxSimilarity: maxSimilarity,
 		region:        region,
 		account:       account,
-		repl:          regexp.MustCompile(`\(.*\) `),
+		repl:          regexp.MustCompile(` \(.*\)`),
 	}
 }
 
@@ -71,7 +71,7 @@ func (g *Grouping) common(a, b string) string {
 // createPromMetric creates a Prometheus metric based on the given metric group.
 func (g *Grouping) createPromMetric(m MetricGroup) *PrometheusMetric {
 	return &PrometheusMetric{
-		Name:  createMetricName(*m.Quota.ServiceCode, m.Common),
+		Name:  createMetricName(*m.Quota.ServiceCode, g.RemoveBrackets(m.Common)),
 		Value: *m.Quota.Value,
 		Labels: map[string]string{
 			"adjustable":   strconv.FormatBool(m.Quota.Adjustable),
@@ -143,6 +143,5 @@ func (g *Grouping) GroupMetrics(quotas []sqTypes.ServiceQuota) (map[string][]Met
 			}
 		}
 	}
-	// fmt.Println(awsutil.Prettify(response))
 	return response, promMetrics
 }
