@@ -11,6 +11,51 @@ A subset of the aws service quotas are labelled `adjustable`. This can be at the
 
 The aim of the `aws_quota_exporter` is to export these quotas in prometheus to solve the above problem. At the time of writing, this feature is not currently available in the [`prometheus yace exporter`](https://github.com/nerdswords/yet-another-cloudwatch-exporter/issues/138)
 
+# Breaking Change! :warning:
+Version `1.0.0` will introduce a clustering functionality that groups similar metrics. The common words from the metric group are extracted as a metric name. The unique words form the label. Two new labels are added:
+*  `kind`: The label for the unique word.
+* `name`: The AWS metric name.
+
+
+## Example Transformation
+Example transformation of the metric grouping can be seen below:
+### Before
+```ini
+# HELP aws_quota_ec2_all_dl_spot_instance_requests All DL Spot Instance Requests
+aws_quota_ec2_all_dl_spot_instance_requests{account="126485599999",adjustable="true",global_quota="false",region="us-west-1",unit="None"} 0
+# HELP aws_quota_ec2_all_f_spot_instance_requests All F Spot Instance Requests
+aws_quota_ec2_all_f_spot_instance_requests{account="126485599999",adjustable="true",global_quota="false",region="us-west-1",unit="None"} 0
+# HELP aws_quota_ec2_all_g_and_vt_spot_instance_requests All G and VT Spot Instance Requests
+aws_quota_ec2_all_g_and_vt_spot_instance_requests{account="126485599999",adjustable="true",global_quota="false",region="us-west-1",unit="None"} 0
+# HELP aws_quota_ec2_all_inf_spot_instance_requests All Inf Spot Instance Requests
+aws_quota_ec2_all_inf_spot_instance_requests{account="126485599999",adjustable="true",global_quota="false",region="us-west-1",unit="None"} 0
+# HELP aws_quota_ec2_all_p4__p3_and_p2_spot_instance_requests All P4, P3 and P2 Spot Instance Requests
+aws_quota_ec2_all_p4__p3_and_p2_spot_instance_requests{account="126485599999",adjustable="true",global_quota="false",region="us-west-1",unit="None"} 0
+# HELP aws_quota_ec2_all_p5_spot_instance_requests All P5 Spot Instance Requests
+aws_quota_ec2_all_p5_spot_instance_requests{account="126485599999",adjustable="true",global_quota="false",region="us-west-1",unit="None"} 0
+# HELP aws_quota_ec2_all_standard__a__c__d__h__i__m__r__t__z__spot_instance_requests All Standard (A, C, D, H, I, M, R, T, Z) Spot Instance Requests
+aws_quota_ec2_all_standard__a__c__d__h__i__m__r__t__z__spot_instance_requests{account="126485599999",adjustable="true",global_quota="false",region="us-west-1",unit="None"} 5
+# HELP aws_quota_ec2_all_trn_spot_instance_requests All Trn Spot Instance Requests
+aws_quota_ec2_all_trn_spot_instance_requests{account="126485599999",adjustable="true",global_quota="false",region="us-west-1",unit="None"} 0
+# HELP aws_quota_ec2_all_x_spot_instance_requests All X Spot Instance Requests
+aws_quota_ec2_all_x_spot_instance_requests{account="126485599999",adjustable="true",global_quota="false",region="us-west-1",unit="None"} 0
+```
+### After
+```ini
+# HELP aws_quota_ec2_all_spot_instance_requests Amazon Elastic Compute Cloud (Amazon EC2): All Spot Instance Requests
+# TYPE aws_quota_ec2_all_spot_instance_requests gauge
+aws_quota_ec2_all_spot_instance_requests{account="126485599999",adjustable="true",global_quota="false",kind="DL",name="All DL Spot Instance Requests",region="us-west-1",unit="None"} 0
+aws_quota_ec2_all_spot_instance_requests{account="126485599999",adjustable="true",global_quota="false",kind="F",name="All F Spot Instance Requests",region="us-west-1",unit="None"} 0
+aws_quota_ec2_all_spot_instance_requests{account="126485599999",adjustable="true",global_quota="false",kind="G and VT",name="All G and VT Spot Instance Requests",region="us-west-1",unit="None"} 0
+aws_quota_ec2_all_spot_instance_requests{account="126485599999",adjustable="true",global_quota="false",kind="Inf",name="All Inf Spot Instance Requests",region="us-west-1",unit="None"} 0
+aws_quota_ec2_all_spot_instance_requests{account="126485599999",adjustable="true",global_quota="false",kind="P4, P3 P2",name="All P4, P3 and P2 Spot Instance Requests",region="us-west-1",unit="None"} 0
+aws_quota_ec2_all_spot_instance_requests{account="126485599999",adjustable="true",global_quota="false",kind="P5",name="All P5 Spot Instance Requests",region="us-west-1",unit="None"} 0
+aws_quota_ec2_all_spot_instance_requests{account="126485599999",adjustable="true",global_quota="false",kind="Standard (A, C, D, H, I, M, R, T, Z)",name="All Standard (A, C, D, H, I, M, R, T, Z) Spot Instance Requests",region="us-west-1",unit="None"} 5
+aws_quota_ec2_all_spot_instance_requests{account="126485599999",adjustable="true",global_quota="false",kind="Trn",name="All Trn Spot Instance Requests",region="us-west-1",unit="None"} 0
+aws_quota_ec2_all_spot_instance_requests{account="126485599999",adjustable="true",global_quota="false",kind="X",name="All X Spot Instance Requests",region="us-west-1",unit="None"} 0
+```
+
+
 # Usage
 * Run the following command
 ```
