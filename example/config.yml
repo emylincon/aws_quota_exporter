@@ -1,0 +1,20 @@
+jobs:
+  - serviceCode: lambda
+    regions:
+      - us-west-1
+      - us-east-1
+  - serviceCode: cloudtrail
+    regions:
+      - eu-central-1
+  - serviceCode: ebs
+    regions:
+      - eu-central-1
+
+  - serviceCode: cloudformation
+    regions:
+      - us-west-1
+      - us-east-1
+  - serviceCode: ec2
+    regions:
+      - us-west-1
+      - us-east-1

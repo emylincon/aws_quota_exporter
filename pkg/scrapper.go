@@ -19,6 +19,14 @@ import (
 	"golang.org/x/exp/slog"
 )
 
+const (
+	maxSimilarity = 0.53
+)
+
+var (
+	maxResults int32 = 100
+)
+
 // Scraper struct
 type Scraper struct {
 	cfg aws.Config
@@ -39,29 +47,35 @@ func NewScraper() (*Scraper, error) {
 	return &Scraper{cfg: cfg}, nil
 }
 
-var maxResults int32 = 100
-
 // CreateScraper Scrape Quotas from AWS
-func (s *Scraper) CreateScraper(job JobConfig, cacheExpiryDuration time.Duration) func() ([]*PrometheusMetric, error) {
-	// create new cache for service
-	cacheStore := NewCache(job.ServiceCode+".json", cacheExpiryDuration)
+func (s *Scraper) CreateScraper(job JobConfig, cacheDuration *time.Duration) func() ([]*PrometheusMetric, error) {
+
 	cfg := s.getAWSConfig(job.Role)
 	AccountID := getAWSAccountID(cfg)
+
+	// create new cache for service
+	cacheStore, err := NewCache(job.ServiceCode, *cacheDuration)
+	if err != nil {
+		slog.Warn(fmt.Sprintf("Cache disabled for %s (account %s)", job.ServiceCode, AccountID))
+	}
 
 	return func() ([]*PrometheusMetric, error) {
 		// logging start metrics collection
 		l := slog.With("serviceCode", job.ServiceCode, "regions", job.Regions, logGroup)
 		start := time.Now()
-		cacheData, err := cacheStore.Read()
-		if err == nil {
-			l.Info("Metrics Read from cache",
-				"duration", time.Since(start),
-			)
-			return cacheData, nil
-		} else if err == ErrCacheExpired {
-			l.Debug("Cache Read", "msg", err)
-		} else {
-			l.Debug("Cache Read Error", "error", err)
+
+		if cacheStore != nil {
+			cacheData, err := cacheStore.Read()
+			if err == nil {
+				l.Info("Metrics Read from cache",
+					"duration", time.Since(start),
+				)
+				return cacheData, nil
+			} else if err == ErrCacheExpired {
+				l.Debug("Cache Read", "msg", err)
+			} else {
+				l.Debug("Cache Read Error", "error", err)
+			}
 		}
 
 		l.Info("Scrapping metrics")
@@ -88,10 +102,14 @@ func (s *Scraper) CreateScraper(job JobConfig, cacheExpiryDuration time.Duration
 
 			metricList = append(metricList, data.metrics...)
 		}
-		err = cacheStore.Write(metricList)
-		if err != nil {
-			l.Debug("Cache Write error", "error", err)
+
+		if cacheStore != nil {
+			err = cacheStore.Write(metricList)
+			if err != nil {
+				l.Debug("Cache Write error", "error", err)
+			}
 		}
+
 		l.Info("Metrics Scrapped",
 			"duration", time.Since(start),
 		)
@@ -160,29 +178,24 @@ func validateRoleARN(role string) bool {
 
 // Transform to prometheus format
 func Transform(quotas *sq.ListServiceQuotasOutput, defaultQuotas *sq.ListAWSDefaultServiceQuotasOutput, region, account string) ([]*PrometheusMetric, error) {
-	metrics := []*PrometheusMetric{}
-	check := map[string]bool{}
-
-	for _, v := range quotas.Quotas {
-		metricName := createMetricName(*v.ServiceCode, *v.QuotaName)
-
-		metric := &PrometheusMetric{
-			Name:   metricName,
-			Value:  *v.Value,
-			Labels: map[string]string{"adjustable": strconv.FormatBool(v.Adjustable), "global_quota": strconv.FormatBool(v.GlobalQuota), "unit": *v.Unit, "region": region, "account": account},
-			Desc:   *v.QuotaName,
-		}
-		metrics = append(metrics, metric)
-		check[metricName] = true
-	}
-	for _, d := range defaultQuotas.Quotas {
-		metricName := createMetricName(*d.ServiceCode, *d.QuotaName)
-		if _, ok := check[metricName]; !ok {
+	quotas.Quotas = append(quotas.Quotas, defaultQuotas.Quotas...)
+	g := NewGrouping(maxSimilarity, region, account)
+	mg, metrics := g.GroupMetrics(quotas.Quotas)
+	for _, d := range mg {
+		if len(d) == 1 { // one item in group
+			quota := d[0]
 			metric := &PrometheusMetric{
-				Name:   metricName,
-				Value:  *d.Value,
-				Labels: map[string]string{"adjustable": strconv.FormatBool(d.Adjustable), "global_quota": strconv.FormatBool(d.GlobalQuota), "unit": *d.Unit, "region": region, "account": account},
-				Desc:   *d.QuotaName,
+				Name:  createMetricName(*quota.Quota.ServiceCode, g.RemoveBrackets(*quota.Quota.QuotaName)),
+				Value: *quota.Quota.Value,
+				Labels: map[string]string{
+					"adjustable":   strconv.FormatBool(quota.Quota.Adjustable),
+					"global_quota": strconv.FormatBool(quota.Quota.GlobalQuota),
+					"unit":         *quota.Quota.Unit,
+					"region":       region,
+					"account":      account,
+					"name":         *quota.Quota.QuotaName,
+				},
+				Desc: createDescription(*quota.Quota.ServiceName, *quota.Quota.QuotaName),
 			}
 			metrics = append(metrics, metric)
 		}
@@ -192,6 +205,10 @@ func Transform(quotas *sq.ListServiceQuotasOutput, defaultQuotas *sq.ListAWSDefa
 
 func createMetricName(serviceCode, quotaName string) string {
 	return fmt.Sprintf("aws_quota_%s_%s", serviceCode, PromString(quotaName))
+}
+
+func createDescription(serviceName, quotaName string) string {
+	return fmt.Sprintf("%s: %s", serviceName, quotaName)
 }
 
 func getServiceQuotas(ctx context.Context, region, account string, sqInput *sq.ListServiceQuotasInput, client *sq.Client, c chan chanData) {

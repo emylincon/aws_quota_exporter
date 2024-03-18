@@ -22,12 +22,25 @@ var (
 )
 
 // NewCache creates a new Cache instance
-func NewCache(fileName string, lifeTime time.Duration) *Cache {
+func NewCache(fileName string, lifeTime time.Duration) (*Cache, error) {
+	// check if cache folder exists
+	if _, err := os.Stat(CacheFolder); os.IsNotExist(err) {
+		err = os.MkdirAll(CacheFolder, 0755)
+		if err != nil {
+			return nil, errors.New("Error creating cache folder: " + err.Error())
+		}
+	}
+
+	f, err := os.CreateTemp(CacheFolder, fileName+"-*.json")
+	if err != nil {
+		return nil, errors.New("Could not initialise cache for " + fileName + ": " + err.Error())
+	}
+
 	return &Cache{
-		FileName: CacheFolder + fileName,
+		FileName: f.Name(),
 		LifeTime: time.Second * lifeTime,
 		Expires:  time.Now(),
-	}
+	}, nil
 }
 
 // Read reads the contents of the cache file
