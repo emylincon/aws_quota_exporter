@@ -12,7 +12,7 @@ A subset of the aws service quotas are labelled `adjustable`. This can be at the
 The aim of the `aws_quota_exporter` is to export these quotas in prometheus to solve the above problem. At the time of writing, this feature is not currently available in the [`prometheus yace exporter`](https://github.com/nerdswords/yet-another-cloudwatch-exporter/issues/138)
 
 # Breaking Change! :warning:
-Version `1.0.0` will introduce a clustering functionality that groups similar metrics. The common words from the metric group are extracted as a metric name. The unique words form the label. Two new labels are added:
+Version `1.0.0 +` will introduce a clustering functionality that groups similar metrics. This was requested [here](https://github.com/emylincon/aws_quota_exporter/issues/135). The common words from the metric group are extracted as a metric name. The unique words form the label. Two new labels are added:
 *  `kind`: The label for the unique word.
 * `name`: The AWS metric name.
 
