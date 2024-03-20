@@ -185,7 +185,7 @@ func Transform(quotas *sq.ListServiceQuotasOutput, defaultQuotas *sq.ListAWSDefa
 		if len(d) == 1 { // one item in group
 			quota := d[0]
 			metric := &PrometheusMetric{
-				Name:  createMetricName(*quota.Quota.ServiceCode, g.RemoveBrackets(*quota.Quota.QuotaName)),
+				Name:  createMetricName(*quota.Quota.ServiceCode, *quota.Quota.QuotaName),
 				Value: *quota.Quota.Value,
 				Labels: map[string]string{
 					"adjustable":   strconv.FormatBool(quota.Quota.Adjustable),
