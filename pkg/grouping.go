@@ -71,7 +71,7 @@ func (g *Grouping) common(a, b string) string {
 // createPromMetric creates a Prometheus metric based on the given metric group.
 func (g *Grouping) createPromMetric(m MetricGroup) *PrometheusMetric {
 	return &PrometheusMetric{
-		Name:  createMetricName(*m.Quota.ServiceCode, g.RemoveBrackets(m.Common)),
+		Name:  createMetricName(*m.Quota.ServiceCode, m.Common),
 		Value: *m.Quota.Value,
 		Labels: map[string]string{
 			"adjustable":   strconv.FormatBool(m.Quota.Adjustable),
