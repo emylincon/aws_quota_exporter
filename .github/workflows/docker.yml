@@ -88,6 +88,9 @@ jobs:
           tags: |
             "${{ env.IMAGE_NAME }}:latest"
             "${{ env.IMAGE_NAME }}:${{ github.ref_name }}"
+          build-args: |
+            APP_VERSION=${{ github.ref_name }}
+            APP_COMMIT=${{ github.sha }}
 
           # tags: |
           #   "${{ env.IMAGE_NAME }}:latest"
@@ -107,4 +110,7 @@ jobs:
           tags: |
             "${{ secrets.REGISTRY_GITHUB }}/${{ env.APP_NAME }}:latest"
             "${{ secrets.REGISTRY_GITHUB }}/${{ env.APP_NAME }}:${{ github.ref_name }}"
+          build-args: |
+            APP_VERSION=${{ github.ref_name }}
+            APP_COMMIT=${{ github.sha }}
 
