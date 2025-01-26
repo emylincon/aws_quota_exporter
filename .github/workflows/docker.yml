@@ -10,6 +10,7 @@ env:
   IMAGE_NAME: ugwuanyi/aqe
   TEST_IMAGE: aqe/test
   REPO: https://github.com/emylincon/aws_quota_exporter
+  GHCR: ghcr.io/emylincon/aws_quota_exporter
 
 jobs:
   # prebuild:
@@ -108,8 +109,8 @@ jobs:
           # labels: org.opencontainers.image.source=${{ env.REPO }},org.opencontainers.image.version=${{ needs.prebuild.outputs.tag_name }}
           labels: org.opencontainers.image.source=${{ env.REPO }},org.opencontainers.image.version=${{ github.ref_name }}
           tags: |
-            "${{ secrets.REGISTRY_GITHUB }}/${{ env.APP_NAME }}:latest"
-            "${{ secrets.REGISTRY_GITHUB }}/${{ env.APP_NAME }}:${{ github.ref_name }}"
+            "${{ env.GHCR }}/${{ env.APP_NAME }}:latest"
+            "${{ env.GHCR }}/${{ env.APP_NAME }}:${{ github.ref_name }}"
           build-args: |
             APP_VERSION=${{ github.ref_name }}
             APP_COMMIT=${{ github.sha }}
