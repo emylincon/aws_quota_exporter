@@ -103,7 +103,7 @@ Usage of ./aws_quota_exporter:
 $ ./aws_quota_exporter -version
 ```
 ```
-aqe version 0.1.4 darwin/arm64
+aqe version 1.0.0 darwin/arm64
 ```
 ## Service Codes
 The `serviceCode` is the AWS service identifier. To identify the `serviceCode` for a particular service, use the following aws cli command:
