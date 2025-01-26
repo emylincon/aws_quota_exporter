@@ -8,6 +8,7 @@ env:
   APP_NAME: aqe
   IMAGE_NAME: ugwuanyi/aqe
   TEST_IMAGE: aqe/test
+  REPO: https://github.com/emylincon/aws_quota_exporter
 
 jobs:
   prebuild:
@@ -92,6 +93,7 @@ jobs:
           file: "docker/Dockerfile"
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           push: true
+          labels: org.opencontainers.image.source=${{ env.REPO }},org.opencontainers.image.version=${{ needs.prebuild.outputs.tag_name }}
           tags: |
             "${{ secrets.REGISTRY_GITHUB }}/${{ env.APP_NAME }}:latest"
             "${{ secrets.REGISTRY_GITHUB }}/${{ env.APP_NAME }}:${{ needs.prebuild.outputs.tag_name }}"
