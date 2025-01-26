@@ -2,13 +2,13 @@ name: docker
 
 on:
   push:
-    # branches: ["main"]
-    tags: ["*"]
+    branches: ["main"]
 
 env:
   APP_NAME: aqe
   IMAGE_NAME: ugwuanyi/aqe
   TEST_IMAGE: aqe/test
+  REPO: https://github.com/emylincon/aws_quota_exporter
 
 jobs:
   prebuild:
@@ -17,18 +17,16 @@ jobs:
     permissions:
       contents: write
     outputs:
-      new_tag: ${{ steps.tag_version.outputs.new_tag }}
-      changelog: ${{ steps.tag_version.outputs.changelog }}
+      tag_name: ${{ steps.tag_version.outputs.tag_name }}
     steps:
       - uses: actions/checkout@v4
-
       - name: Bump version and push tag
         id: tag_version
-        uses: mathieudutour/github-tag-action@v6.2
+        uses: rymndhng/release-on-push-action@v0.28.0
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          custom_release_rules: patch:patch,minor:minor,major:major,prepatch:prepatch,preminor:preminor,premajor:premajor
-          dry_run: true
+          bump_version_scheme: norelease
+          use_github_release_notes: true
+          tag_prefix: v
 
   build:
     name: Build docker image
@@ -85,7 +83,7 @@ jobs:
           push: true
           tags: |
             "${{ env.IMAGE_NAME }}:latest"
-            "${{ env.IMAGE_NAME }}:${{ needs.prebuild.outputs.new_tag }}"
+            "${{ env.IMAGE_NAME }}:${{ needs.prebuild.outputs.tag_name }}"
 
       - name: Push to ghcr
         if: ${{ env.REGISTRY_GITHUB_ENABLED == 'true' }}
@@ -95,25 +93,8 @@ jobs:
           file: "docker/Dockerfile"
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           push: true
+          labels: org.opencontainers.image.source=${{ env.REPO }},org.opencontainers.image.version=${{ needs.prebuild.outputs.tag_name }}
           tags: |
             "${{ secrets.REGISTRY_GITHUB }}/${{ env.APP_NAME }}:latest"
-            "${{ secrets.REGISTRY_GITHUB }}/${{ env.APP_NAME }}:${{ needs.prebuild.outputs.new_tag }}"
+            "${{ secrets.REGISTRY_GITHUB }}/${{ env.APP_NAME }}:${{ needs.prebuild.outputs.tag_name }}"
 
-  release:
-    name: release
-    runs-on: ubuntu-latest
-    needs: [ prebuild, build ]
-    permissions:
-      contents: write
-      pull-requests: read
-    steps:
-      - uses: actions/checkout@v4
-        name: Checkout
-      - name: Create a GitHub release
-        uses: ncipollo/release-action@v1.15.0
-        with:
-          tag: ${{ needs.prebuild.outputs.new_tag }}
-          name: Release ${{ needs.prebuild.outputs.new_tag }}
-          body: ${{ needs.prebuild.outputs.changelog }}
-          generateReleaseNotes: true
-          draft: true
