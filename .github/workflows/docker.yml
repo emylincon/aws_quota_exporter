@@ -76,7 +76,7 @@ jobs:
 
 
       - name: Push to dockerhub
-        if: ${{ env.REGISTRY_DOCKERHUB_ENABLED == 'true' }}
+        if: ${{ env.REGISTRY_DOCKERHUB_ENABLED == 'true' && needs.prebuild.outputs.tag_name != null }}
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -88,7 +88,7 @@ jobs:
             "${{ env.IMAGE_NAME }}:${{ needs.prebuild.outputs.tag_name }}"
 
       - name: Push to ghcr
-        if: ${{ env.REGISTRY_GITHUB_ENABLED == 'true' }}
+        if: ${{ env.REGISTRY_GITHUB_ENABLED == 'true' && needs.prebuild.outputs.tag_name != null }}
         uses: docker/build-push-action@v6
         with:
           context: .
