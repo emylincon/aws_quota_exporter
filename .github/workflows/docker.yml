@@ -40,7 +40,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       REGISTRY_DOCKERHUB_ENABLED: ${{ secrets.DOCKERHUB_USERNAME != null }}
-      REGISTRY_GITHUB_ENABLED: ${{ secrets.REGISTRY_GITHUB != null }}
+      REGISTRY_GITHUB_ENABLED: true
     steps:
       - uses: actions/checkout@v4
 
