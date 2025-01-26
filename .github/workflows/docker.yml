@@ -3,6 +3,7 @@ name: docker
 on:
   push:
     branches: ["main"]
+    tags: ["*"]
 
 env:
   APP_NAME: aqe
@@ -11,28 +12,28 @@ env:
   REPO: https://github.com/emylincon/aws_quota_exporter
 
 jobs:
-  prebuild:
-    name: prebuild
-    runs-on: ubuntu-latest
-    env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    permissions:
-      contents: write
-    outputs:
-      tag_name: ${{ steps.tag_version.outputs.tag_name }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: Bump version and push tag
-        id: tag_version
-        uses: rymndhng/release-on-push-action@v0.28.0
-        with:
-          bump_version_scheme: norelease
-          use_github_release_notes: true
-          tag_prefix: v
+  # prebuild:
+  #   name: prebuild
+  #   runs-on: ubuntu-latest
+  #   env:
+  #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #   permissions:
+  #     contents: write
+  #   outputs:
+  #     tag_name: ${{ steps.tag_version.outputs.tag_name }}
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Bump version and push tag
+  #       id: tag_version
+  #       uses: rymndhng/release-on-push-action@v0.28.0
+  #       with:
+  #         bump_version_scheme: norelease
+  #         use_github_release_notes: true
+  #         tag_prefix: v
 
   build:
     name: Build docker image
-    needs: [prebuild]
+    # needs: [prebuild]
     permissions:
       contents: write
       packages: write
@@ -76,7 +77,8 @@ jobs:
 
 
       - name: Push to dockerhub
-        if: ${{ env.REGISTRY_DOCKERHUB_ENABLED == 'true' && needs.prebuild.outputs.tag_name != null }}
+        # if: ${{ env.REGISTRY_DOCKERHUB_ENABLED == 'true' && needs.prebuild.outputs.tag_name != null }}
+        if: ${{ env.REGISTRY_DOCKERHUB_ENABLED == 'true'  }}
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -85,18 +87,24 @@ jobs:
           push: true
           tags: |
             "${{ env.IMAGE_NAME }}:latest"
-            "${{ env.IMAGE_NAME }}:${{ needs.prebuild.outputs.tag_name }}"
+            "${{ env.IMAGE_NAME }}:${{ github.ref_name }}"
+
+          # tags: |
+          #   "${{ env.IMAGE_NAME }}:latest"
+          #   "${{ env.IMAGE_NAME }}:${{ needs.prebuild.outputs.tag_name }}"
 
       - name: Push to ghcr
-        if: ${{ env.REGISTRY_GITHUB_ENABLED == 'true' && needs.prebuild.outputs.tag_name != null }}
+        if: ${{ env.REGISTRY_GITHUB_ENABLED == 'true'  }}
+        # if: ${{ env.REGISTRY_GITHUB_ENABLED == 'true' && needs.prebuild.outputs.tag_name != null }}
         uses: docker/build-push-action@v6
         with:
           context: .
           file: "docker/Dockerfile"
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           push: true
-          labels: org.opencontainers.image.source=${{ env.REPO }},org.opencontainers.image.version=${{ needs.prebuild.outputs.tag_name }}
+          # labels: org.opencontainers.image.source=${{ env.REPO }},org.opencontainers.image.version=${{ needs.prebuild.outputs.tag_name }}
+          labels: org.opencontainers.image.source=${{ env.REPO }},org.opencontainers.image.version=${{ github.ref_name }}
           tags: |
             "${{ secrets.REGISTRY_GITHUB }}/${{ env.APP_NAME }}:latest"
-            "${{ secrets.REGISTRY_GITHUB }}/${{ env.APP_NAME }}:${{ needs.prebuild.outputs.tag_name }}"
+            "${{ secrets.REGISTRY_GITHUB }}/${{ env.APP_NAME }}:${{ github.ref_name }}"
 
