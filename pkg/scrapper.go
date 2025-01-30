@@ -67,14 +67,14 @@ func (s *Scraper) CreateScraper(job JobConfig, cacheDuration *time.Duration) fun
 		if cacheStore != nil {
 			cacheData, err := cacheStore.Read()
 			if err == nil {
-				l.Info("Metrics Read from cache",
+				l.Debug("Metrics Read from cache",
 					"duration", time.Since(start),
 				)
 				return cacheData, nil
 			} else if err == ErrCacheExpired {
-				l.Debug("Cache Read", "msg", err)
+				l.Info("Cache Read", "msg", err)
 			} else {
-				l.Debug("Cache Read Error", "error", err)
+				l.Info("Cache Read Error", "error", err)
 			}
 		}
 
