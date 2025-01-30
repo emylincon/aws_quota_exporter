@@ -38,7 +38,7 @@ func NewCache(fileName string, lifeTime time.Duration) (*Cache, error) {
 
 	return &Cache{
 		FileName: f.Name(),
-		LifeTime: time.Second * lifeTime,
+		LifeTime: lifeTime,
 		Expires:  time.Now(),
 	}, nil
 }
