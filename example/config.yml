@@ -20,5 +20,5 @@ jobs:
       - us-east-1
   - serviceCode: ec2
     regions:
-      - us-west-2
+      - us-west-1
       - us-east-1

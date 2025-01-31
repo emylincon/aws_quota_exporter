@@ -11,41 +11,8 @@ on:
 
 
 jobs:
-  detect:
-    name: detect file changes
-    runs-on: ubuntu-latest
-    outputs:
-      run: ${{ steps.diff.outputs.run }}
-    steps:
-      - uses: actions/checkout@v4
-        id: checkout
-
-      - name: Get all changed markdown files
-        id: changed-markdown-files
-        uses: tj-actions/changed-files@v45
-        with:
-          since_last_remote_commit: true 
-          # Avoid using single or double quotes for multiline patterns
-          files: |
-            **.go
-            example/**.yml
-            **.mod
-            **.sum
-            
-      - name: List all changed files markdown files
-        if: steps.changed-markdown-files.outputs.any_changed == 'true'
-        env:
-          ALL_CHANGED_FILES: ${{ steps.changed-markdown-files.outputs.all_changed_files }}
-        run: |
-          echo "files = |${ALL_CHANGED_FILES}|"
-      - name: If diff
-        id: diff
-        run: echo "run=${{ steps.changed-markdown-files.outputs.any_changed }}" >> $GITHUB_OUTPUT
-
   build:
     runs-on: ubuntu-latest
-    needs: detect
-    if: needs.detect.outputs.run == 'true'
     steps:
       - uses: actions/checkout@v3
 
