@@ -24,12 +24,14 @@ jobs:
         id: changed-markdown-files
         uses: tj-actions/changed-files@v45
         with:
+          since_last_remote_commit: true 
           # Avoid using single or double quotes for multiline patterns
           files: |
             **.go
-            **.yml
+            example/**.yml
             **.mod
             **.sum
+            
       - name: List all changed files markdown files
         if: steps.changed-markdown-files.outputs.any_changed == 'true'
         env:
@@ -38,9 +40,7 @@ jobs:
           echo "files = |${ALL_CHANGED_FILES}|"
       - name: If diff
         id: diff
-        run: echo ::set-output name=run::${{ steps.changed-markdown-files.outputs.any_changed }}
-
-
+        run: echo "run=${{ steps.changed-markdown-files.outputs.any_changed }}" >> $GITHUB_OUTPUT
 
   build:
     runs-on: ubuntu-latest
