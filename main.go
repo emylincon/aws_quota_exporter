@@ -129,7 +129,7 @@ func main() {
 
 	slog.Info("Initialization of AWS Quota Exporter completed successfully", "duration", time.Since(start))
 
-	// Start listening for HTTP connections.
+	// Start listening for HTTP connections. 1
 	port := fmt.Sprintf(":%d", *promPort)
 	slog.Info("Starting AWS Quota Exporter", "address", fmt.Sprintf("%v/metrics", port))
 	if err := http.ListenAndServe(port, mux); err != nil {
