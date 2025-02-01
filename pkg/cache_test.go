@@ -26,6 +26,7 @@ func TestNewCache(t *testing.T) {
 				FileName: CacheFolder + "test_cache.json",
 				LifeTime: time.Second * time.Duration(1),
 				Expires:  time.Now(),
+				isEmpty:  true,
 			},
 		},
 	}
@@ -39,6 +40,9 @@ func TestNewCache(t *testing.T) {
 			}
 
 			if !strings.HasPrefix(got.FileName, tt.want.FileName) {
+				t.Errorf("NewCache() = %v, want %v", got, tt.want)
+			}
+			if got.isEmpty != tt.want.isEmpty {
 				t.Errorf("NewCache() = %v, want %v", got, tt.want)
 			}
 		})
@@ -65,6 +69,7 @@ func FuzzNewCache(f *testing.F) {
 				FileName: CacheFolder + "test_cache1.json",
 				LifeTime: time.Second * time.Duration(1),
 				Expires:  time.Now(),
+				isEmpty:  true,
 			},
 		},
 		{
@@ -77,6 +82,7 @@ func FuzzNewCache(f *testing.F) {
 				FileName: CacheFolder + "test_cache2.json",
 				LifeTime: time.Second * time.Duration(10),
 				Expires:  time.Now(),
+				isEmpty:  true,
 			},
 		},
 	}
@@ -94,6 +100,10 @@ func FuzzNewCache(f *testing.F) {
 			want := CacheFolder + filename
 			if !strings.HasPrefix(c.FileName, want) {
 				t.Errorf("NewCache().FileName = %v, want %v", c.FileName, want)
+			}
+
+			if c.isEmpty != true {
+				t.Errorf("NewCache() = %v, want %v", c.isEmpty, true)
 			}
 		},
 	)
