@@ -4,6 +4,8 @@ on:
   push:
     branches: ["main"]
     tags: ["*"]
+  pull_request:
+      branches: ["main"]
 
 env:
   APP_NAME: aqe
@@ -13,28 +15,38 @@ env:
   GHCR: ghcr.io/emylincon/aws_quota_exporter
 
 jobs:
-  # prebuild:
-  #   name: prebuild
-  #   runs-on: ubuntu-latest
-  #   env:
-  #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  #   permissions:
-  #     contents: write
-  #   outputs:
-  #     tag_name: ${{ steps.tag_version.outputs.tag_name }}
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - name: Bump version and push tag
-  #       id: tag_version
-  #       uses: rymndhng/release-on-push-action@v0.28.0
-  #       with:
-  #         bump_version_scheme: norelease
-  #         use_github_release_notes: true
-  #         tag_prefix: v
+  prebuild:
+    name: prebuild
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    permissions:
+      contents: write
+    outputs:
+      tag_name: ${{ steps.get_tag_name.outputs.tag_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bump version and push tag
+        id: tag_version
+        if: github.ref_type != 'tag'
+        uses: rymndhng/release-on-push-action@v0.28.0
+        with:
+          bump_version_scheme: norelease
+          use_github_release_notes: true
+          tag_prefix: v
+      - name: Get the tag name
+        id: get_tag_name
+        run: |
+          echo "my-tag=${{ steps.tag_version.outputs.tag_name }}"
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            echo "tag_name=${{ github.ref }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag_name=${{ steps.tag_version.outputs.tag_name }}" >> "$GITHUB_OUTPUT"
+          fi
 
   build:
     name: Build docker image
-    # needs: [prebuild]
+    needs: [prebuild]
     permissions:
       contents: write
       packages: write
@@ -78,40 +90,40 @@ jobs:
 
 
       - name: Push to dockerhub
-        # if: ${{ env.REGISTRY_DOCKERHUB_ENABLED == 'true' && needs.prebuild.outputs.tag_name != null }}
-        if: ${{ env.REGISTRY_DOCKERHUB_ENABLED == 'true'  }}
+        if: ${{ env.REGISTRY_DOCKERHUB_ENABLED == 'true' && needs.prebuild.outputs.tag_name != null }}
+        # if: ${{ env.REGISTRY_DOCKERHUB_ENABLED == 'true'  }}
         uses: docker/build-push-action@v6
         with:
           context: .
           file: "docker/Dockerfile"
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           push: true
-          tags: |
-            "${{ env.IMAGE_NAME }}:latest"
-            "${{ env.IMAGE_NAME }}:${{ github.ref_name }}"
+          # tags: |
+          #   "${{ env.IMAGE_NAME }}:latest"
+          #   "${{ env.IMAGE_NAME }}:${{ github.ref_name }}"
           build-args: |
             APP_VERSION=${{ github.ref_name }}
             APP_COMMIT=${{ github.sha }}
 
-          # tags: |
-          #   "${{ env.IMAGE_NAME }}:latest"
-          #   "${{ env.IMAGE_NAME }}:${{ needs.prebuild.outputs.tag_name }}"
+          tags: |
+            "${{ env.IMAGE_NAME }}:latest"
+            "${{ env.IMAGE_NAME }}:${{ needs.prebuild.outputs.tag_name }}"
 
       - name: Push to ghcr
-        if: ${{ env.REGISTRY_GITHUB_ENABLED == 'true'  }}
-        # if: ${{ env.REGISTRY_GITHUB_ENABLED == 'true' && needs.prebuild.outputs.tag_name != null }}
+        # if: ${{ env.REGISTRY_GITHUB_ENABLED == 'true'  }}
+        if: ${{ env.REGISTRY_GITHUB_ENABLED == 'true' && needs.prebuild.outputs.tag_name != null }}
         uses: docker/build-push-action@v6
         with:
           context: .
           file: "docker/Dockerfile"
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           push: true
-          # labels: org.opencontainers.image.source=${{ env.REPO }},org.opencontainers.image.version=${{ needs.prebuild.outputs.tag_name }}
-          labels: org.opencontainers.image.source=${{ env.REPO }},org.opencontainers.image.version=${{ github.ref_name }}
+          labels: org.opencontainers.image.source=${{ env.REPO }},org.opencontainers.image.version=${{ needs.prebuild.outputs.tag_name }}
+          # labels: org.opencontainers.image.source=${{ env.REPO }},org.opencontainers.image.version=${{ github.ref_name }}
           tags: |
             "${{ env.GHCR }}/${{ env.APP_NAME }}:latest"
-            "${{ env.GHCR }}/${{ env.APP_NAME }}:${{ github.ref_name }}"
+            "${{ env.GHCR }}/${{ env.APP_NAME }}:${{ needs.prebuild.outputs.tag_name }}"
           build-args: |
-            APP_VERSION=${{ github.ref_name }}
+            APP_VERSION=${{ needs.prebuild.outputs.tag_name }}
             APP_COMMIT=${{ github.sha }}
 
