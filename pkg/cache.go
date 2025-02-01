@@ -12,11 +12,14 @@ type Cache struct {
 	FileName string
 	LifeTime time.Duration
 	Expires  time.Time
+	isEmpty  bool
 }
 
 var (
 	// ErrCacheExpired is returned when cache expires
 	ErrCacheExpired = errors.New("Cache expired")
+	// ErrCacheEmpty is returned when cache is empty
+	ErrCacheEmpty = errors.New("Cache empty")
 	// CacheFolder is a folder to store cache files
 	CacheFolder = "/tmp/aws_quota_exporter_cache/"
 )
@@ -40,11 +43,15 @@ func NewCache(fileName string, lifeTime time.Duration) (*Cache, error) {
 		FileName: f.Name(),
 		LifeTime: lifeTime,
 		Expires:  time.Now(),
+		isEmpty:  true,
 	}, nil
 }
 
 // Read reads the contents of the cache file
 func (c *Cache) Read() ([]*PrometheusMetric, error) {
+	if c.isEmpty {
+		return nil, ErrCacheEmpty
+	}
 	if time.Now().After(c.Expires) {
 		return nil, ErrCacheExpired
 	}
@@ -66,6 +73,7 @@ func (c *Cache) Write(data []*PrometheusMetric) error {
 	}
 	err = os.WriteFile(c.FileName, jsonData, 0644)
 	if err == nil {
+		c.isEmpty = false
 		c.Expires = time.Now().Add(c.LifeTime)
 	}
 	return err

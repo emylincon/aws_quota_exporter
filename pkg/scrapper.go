@@ -71,7 +71,7 @@ func (s *Scraper) CreateScraper(job JobConfig, cacheDuration *time.Duration) fun
 					"duration", time.Since(start),
 				)
 				return cacheData, nil
-			} else if err == ErrCacheExpired {
+			} else if (err == ErrCacheExpired) || (err == ErrCacheEmpty) {
 				l.Info("Cache Read", "msg", err)
 			} else {
 				l.Info("Cache Read Error", "error", err)
