@@ -2,8 +2,6 @@ module github.com/emylincon/aws_quota_exporter
 
 go 1.21
 
-toolchain go1.23.2
-
 require (
 	github.com/adrg/strutil v0.3.1
 	github.com/aws/aws-sdk-go v1.44.245
