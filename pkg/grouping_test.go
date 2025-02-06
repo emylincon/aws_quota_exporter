@@ -14,6 +14,7 @@ func TestGroupMetrics(t *testing.T) {
 		name         string
 		groupsLength int
 		promLength   int
+		collectUsage bool
 		quotas       []QuotaUsage
 	}{
 		{
@@ -32,7 +33,7 @@ func TestGroupMetrics(t *testing.T) {
 					UsageMetric: nil,
 					Period:      nil,
 					ErrorReason: nil,
-				}, Usage: 0},
+				}},
 				{Quota: sqTypes.ServiceQuota{
 					ServiceCode: Ptr("ec2"),
 					ServiceName: Ptr("Amazon Elastic Compute Cloud"),
@@ -44,7 +45,7 @@ func TestGroupMetrics(t *testing.T) {
 					UsageMetric: nil,
 					Period:      nil,
 					ErrorReason: nil,
-				}, Usage: 0},
+				}},
 				{Quota: sqTypes.ServiceQuota{
 					ServiceCode: Ptr("ec2"),
 					ServiceName: Ptr("Amazon Elastic Compute Cloud"),
@@ -56,7 +57,7 @@ func TestGroupMetrics(t *testing.T) {
 					UsageMetric: nil,
 					Period:      nil,
 					ErrorReason: nil,
-				}, Usage: 0},
+				}},
 			},
 		},
 		{
@@ -75,7 +76,7 @@ func TestGroupMetrics(t *testing.T) {
 					UsageMetric: nil,
 					Period:      nil,
 					ErrorReason: nil,
-				}, Usage: 0},
+				}},
 				{Quota: sqTypes.ServiceQuota{
 					ServiceCode: Ptr("ec2"),
 					ServiceName: Ptr("Amazon Elastic Compute Cloud"),
@@ -87,7 +88,7 @@ func TestGroupMetrics(t *testing.T) {
 					UsageMetric: nil,
 					Period:      nil,
 					ErrorReason: nil,
-				}, Usage: 0},
+				}},
 				{Quota: sqTypes.ServiceQuota{
 					ServiceCode: Ptr("ec2"),
 					ServiceName: Ptr("Amazon Elastic Compute Cloud"),
@@ -99,7 +100,7 @@ func TestGroupMetrics(t *testing.T) {
 					UsageMetric: nil,
 					Period:      nil,
 					ErrorReason: nil,
-				}, Usage: 0},
+				}},
 			},
 		},
 	}
@@ -112,7 +113,7 @@ func TestGroupMetrics(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			groups, promMetrics := grouping.GroupMetrics(tt.quotas)
+			groups, promMetrics := grouping.GroupMetrics(tt.quotas, tt.collectUsage)
 			if len(groups) != tt.groupsLength {
 				fmt.Println("groups=", awsutil.Prettify(groups), "prom", awsutil.Prettify(promMetrics))
 				t.Errorf("Expected %d groups, got %d", tt.groupsLength, len(groups))
