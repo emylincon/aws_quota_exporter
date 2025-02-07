@@ -297,8 +297,19 @@ func getServiceQuotas(ctx context.Context, collectUsage bool, region, account st
 			resp, err := cwclient.GetMetricStatistics(ctx, params, cwOpts)
 
 			if err == nil {
-				if len(resp.Datapoints) != 0 { // if Quota has Usage, it will be set, otherwise it's = 0
-					mq.Usage = *resp.Datapoints[0].Maximum
+				if len(resp.Datapoints) > 0 { // if Quota has Usage, it will be set, otherwise it's = 0
+					switch *q.UsageMetric.MetricStatisticRecommendation {
+					case "Maximum":
+						mq.Usage = *resp.Datapoints[0].Maximum
+					case "Minimum":
+						mq.Usage = *resp.Datapoints[0].Minimum
+					case "Average":
+						mq.Usage = *resp.Datapoints[0].Average
+					case "Sum":
+						mq.Usage = (*resp.Datapoints[0].Sum) / (5 * 60) // Sum is calculated over 5 min interval
+					case "SampleCount":
+						mq.Usage = *resp.Datapoints[0].SampleCount
+					}
 				}
 			} else {
 				slog.Warn("Unable to retrieve CloudWatch usage", "error", err)
