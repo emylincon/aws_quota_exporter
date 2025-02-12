@@ -288,9 +288,9 @@ func getServiceQuotas(ctx context.Context, collectUsage bool, region, account st
 			params := &cw.GetMetricStatisticsInput{
 				MetricName: aws.String(*q.UsageMetric.MetricName),
 				Namespace:  aws.String(*q.UsageMetric.MetricNamespace),
-				StartTime:  aws.Time(time.Now().Add(time.Minute * -5)),
+				StartTime:  aws.Time(time.Now().Add(time.Minute * -10)),
 				EndTime:    aws.Time(time.Now()),
-				Period:     aws.Int32(60 * 5),
+				Period:     aws.Int32(60 * 10), // Get latest data, 5 minutes isn't always enough
 				Dimensions: dimensions,
 				Statistics: []cwTypes.Statistic{cwTypes.Statistic(*q.UsageMetric.MetricStatisticRecommendation)},
 			}
