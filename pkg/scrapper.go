@@ -306,7 +306,7 @@ func getServiceQuotas(ctx context.Context, collectUsage bool, region, account st
 					case "Average":
 						mq.Usage = *resp.Datapoints[0].Average
 					case "Sum":
-						mq.Usage = (*resp.Datapoints[0].Sum) / (5 * 60) // Sum is calculated over 5 min interval
+						mq.Usage = (*resp.Datapoints[0].Sum) / (60 * 10) // Sum is calculated over `Period` interval, should be equal
 					case "SampleCount":
 						mq.Usage = *resp.Datapoints[0].SampleCount
 					}
