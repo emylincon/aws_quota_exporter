@@ -18,6 +18,7 @@ type MetricGroup struct {
 	Common string               `json:"common,omitempty"` // Common part of the metric name.
 	Sim    float64              `json:"sim,omitempty"`    // Similarity score.
 	Quota  sqTypes.ServiceQuota `json:"quota,omitempty"`  // AWS service quota.
+	Usage  float64              `json:"usage,omitempty"`  // AWS service quota usage.
 }
 
 // Grouping represents a Grouping instance.
@@ -68,12 +69,17 @@ func (g *Grouping) common(a, b string) string {
 	return strings.Join(result, " ")
 }
 
-// createPromMetric creates a Prometheus metric based on the given metric group.
-func (g *Grouping) createPromMetric(m MetricGroup) *PrometheusMetric {
+// createPromMetric creates a Prometheus metric based on the given metric group and type.
+func (g *Grouping) createPromMetric(m MetricGroup, metric_type string) *PrometheusMetric {
+	value := *m.Quota.Value
+	if metric_type == "usage" {
+		value = m.Usage
+	}
 	return &PrometheusMetric{
 		Name:  createMetricName(*m.Quota.ServiceCode, m.Common),
-		Value: *m.Quota.Value,
+		Value: value,
 		Labels: map[string]string{
+			"type":         metric_type,
 			"adjustable":   strconv.FormatBool(m.Quota.Adjustable),
 			"global_quota": strconv.FormatBool(m.Quota.GlobalQuota),
 			"unit":         *m.Quota.Unit,
@@ -92,7 +98,7 @@ func (g *Grouping) RemoveBrackets(str string) string {
 }
 
 // GroupMetrics groups AWS service quotas.
-func (g *Grouping) GroupMetrics(quotas []sqTypes.ServiceQuota) (map[string][]MetricGroup, []*PrometheusMetric) {
+func (g *Grouping) GroupMetrics(quotas []QuotaUsage, collectUsage bool) (map[string][]MetricGroup, []*PrometheusMetric) {
 	promMetrics := []*PrometheusMetric{}
 	hem := metrics.NewLevenshtein()
 	check := map[string]bool{}
@@ -100,18 +106,18 @@ func (g *Grouping) GroupMetrics(quotas []sqTypes.ServiceQuota) (map[string][]Met
 	response := map[string][]MetricGroup{}
 
 	for _, q := range quotas {
-		if _, ok := check[*q.QuotaName]; ok {
+		if _, ok := check[*q.Quota.QuotaName]; ok {
 			continue
 		}
-		check[*q.QuotaName] = true
+		check[*q.Quota.QuotaName] = true
 		if len(response) == 0 {
-			response[*q.QuotaName] = []MetricGroup{{Quota: q}}
+			response[*q.Quota.QuotaName] = []MetricGroup{{Quota: q.Quota, Usage: q.Usage}}
 		} else {
 			selected := false
 			for key := range response {
-				sim := hem.Compare(g.RemoveBrackets(*q.QuotaName), g.RemoveBrackets(key))
+				sim := hem.Compare(g.RemoveBrackets(*q.Quota.QuotaName), g.RemoveBrackets(key))
 				if sim >= g.maxSimilarity {
-					response[key] = append(response[key], MetricGroup{Quota: q})
+					response[key] = append(response[key], MetricGroup{Quota: q.Quota, Usage: q.Usage})
 					if len(response[key]) == 2 {
 						commonStr := g.common(*response[key][0].Quota.QuotaName, *response[key][1].Quota.QuotaName)
 						if commonStr == "" || len(strings.Split(commonStr, " ")) <= 2 { // if the first words of metric names are not the same or common is only two words then skip
@@ -122,7 +128,10 @@ func (g *Grouping) GroupMetrics(quotas []sqTypes.ServiceQuota) (map[string][]Met
 							response[key][i].Label = g.diff(*response[key][i].Quota.QuotaName, *response[key][i^1].Quota.QuotaName)
 							response[key][i].Common = commonStr
 							response[key][i].Sim = hem.Compare(g.RemoveBrackets(*response[key][i].Quota.QuotaName), g.RemoveBrackets(key))
-							promMetrics = append(promMetrics, g.createPromMetric(response[key][i]))
+							promMetrics = append(promMetrics, g.createPromMetric(response[key][i], "quota"))
+							if collectUsage && response[key][i].Quota.UsageMetric != nil { // add Usage metric if Quota has UsageMetric
+								promMetrics = append(promMetrics, g.createPromMetric(response[key][i], "usage"))
+							}
 						}
 					} else if len(response[key]) > 2 {
 						_id := len(response[key]) - 1
@@ -132,14 +141,17 @@ func (g *Grouping) GroupMetrics(quotas []sqTypes.ServiceQuota) (map[string][]Met
 						response[key][_id].Label = g.diff(*response[key][_id].Quota.QuotaName, key)
 						response[key][_id].Common = response[key][0].Common
 						response[key][_id].Sim = sim
-						promMetrics = append(promMetrics, g.createPromMetric(response[key][_id]))
+						promMetrics = append(promMetrics, g.createPromMetric(response[key][_id], "quota"))
+						if collectUsage && response[key][_id].Quota.UsageMetric != nil { // add Usage metric if Quota has UsageMetric
+							promMetrics = append(promMetrics, g.createPromMetric(response[key][_id], "usage"))
+						}
 					}
 					selected = true
 					break
 				}
 			}
 			if !selected {
-				response[*q.QuotaName] = []MetricGroup{{Quota: q}}
+				response[*q.Quota.QuotaName] = []MetricGroup{{Quota: q.Quota, Usage: q.Usage}}
 			}
 		}
 	}

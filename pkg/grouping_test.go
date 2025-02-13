@@ -14,14 +14,15 @@ func TestGroupMetrics(t *testing.T) {
 		name         string
 		groupsLength int
 		promLength   int
-		quotas       []sqTypes.ServiceQuota
+		collectUsage bool
+		quotas       []QuotaUsage
 	}{
 		{
 			name:         "common with only 2 words",
 			groupsLength: 3,
 			promLength:   0,
-			quotas: []sqTypes.ServiceQuota{
-				{
+			quotas: []QuotaUsage{
+				{Quota: sqTypes.ServiceQuota{
 					ServiceCode: Ptr("ec2"),
 					ServiceName: Ptr("Amazon Elastic Compute Cloud"),
 					QuotaName:   Ptr("Test Quota 1"),
@@ -32,8 +33,8 @@ func TestGroupMetrics(t *testing.T) {
 					UsageMetric: nil,
 					Period:      nil,
 					ErrorReason: nil,
-				},
-				{
+				}},
+				{Quota: sqTypes.ServiceQuota{
 					ServiceCode: Ptr("ec2"),
 					ServiceName: Ptr("Amazon Elastic Compute Cloud"),
 					QuotaName:   Ptr("Test Quota 2"),
@@ -44,8 +45,8 @@ func TestGroupMetrics(t *testing.T) {
 					UsageMetric: nil,
 					Period:      nil,
 					ErrorReason: nil,
-				},
-				{
+				}},
+				{Quota: sqTypes.ServiceQuota{
 					ServiceCode: Ptr("ec2"),
 					ServiceName: Ptr("Amazon Elastic Compute Cloud"),
 					QuotaName:   Ptr("Test Quota 3"),
@@ -56,15 +57,15 @@ func TestGroupMetrics(t *testing.T) {
 					UsageMetric: nil,
 					Period:      nil,
 					ErrorReason: nil,
-				},
+				}},
 			},
 		},
 		{
 			name:         "common with more than 2 words",
 			groupsLength: 1,
 			promLength:   3,
-			quotas: []sqTypes.ServiceQuota{
-				{
+			quotas: []QuotaUsage{
+				{Quota: sqTypes.ServiceQuota{
 					ServiceCode: Ptr("ec2"),
 					ServiceName: Ptr("Amazon Elastic Compute Cloud"),
 					QuotaName:   Ptr("All DL Spot Instance Requests"),
@@ -75,8 +76,8 @@ func TestGroupMetrics(t *testing.T) {
 					UsageMetric: nil,
 					Period:      nil,
 					ErrorReason: nil,
-				},
-				{
+				}},
+				{Quota: sqTypes.ServiceQuota{
 					ServiceCode: Ptr("ec2"),
 					ServiceName: Ptr("Amazon Elastic Compute Cloud"),
 					QuotaName:   Ptr("All F Spot Instance Requests"),
@@ -87,8 +88,8 @@ func TestGroupMetrics(t *testing.T) {
 					UsageMetric: nil,
 					Period:      nil,
 					ErrorReason: nil,
-				},
-				{
+				}},
+				{Quota: sqTypes.ServiceQuota{
 					ServiceCode: Ptr("ec2"),
 					ServiceName: Ptr("Amazon Elastic Compute Cloud"),
 					QuotaName:   Ptr("All Standard (A, C, D, H, I, M, R, T, Z) Spot Instance Requests"),
@@ -99,7 +100,7 @@ func TestGroupMetrics(t *testing.T) {
 					UsageMetric: nil,
 					Period:      nil,
 					ErrorReason: nil,
-				},
+				}},
 			},
 		},
 	}
@@ -112,7 +113,7 @@ func TestGroupMetrics(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			groups, promMetrics := grouping.GroupMetrics(tt.quotas)
+			groups, promMetrics := grouping.GroupMetrics(tt.quotas, tt.collectUsage)
 			if len(groups) != tt.groupsLength {
 				fmt.Println("groups=", awsutil.Prettify(groups), "prom", awsutil.Prettify(promMetrics))
 				t.Errorf("Expected %d groups, got %d", tt.groupsLength, len(groups))
