@@ -245,7 +245,6 @@ func getServiceQuotas(ctx context.Context, collectUsage bool, region, account st
 	var r *sq.ListServiceQuotasOutput
 	var d *sq.ListAWSDefaultServiceQuotasOutput
 	var quotasUsage []QuotaUsage
-	check := map[string]bool{}
 	errs := [2]error{}
 
 	wg.Add(2)
@@ -276,47 +275,12 @@ func getServiceQuotas(ctx context.Context, collectUsage bool, region, account st
 
 	// merge applied Quotas with defaults
 	quotasMerged := append(r.Quotas, d.Quotas...)
-	// loop over all Quotas and fetch CloudWatch usage once
-	cwOpts := func(o *cw.Options) { o.Region = region }
-	for _, q := range quotasMerged {
-		mq := QuotaUsage{q, 0}
-		if collectUsage && q.UsageMetric != nil && !check[*q.QuotaCode] {
-			var dimensions []cwTypes.Dimension
-			for k, v := range q.UsageMetric.MetricDimensions { // form Dimensions filter for GetMetricStatisticsInput based on UsageMetric.MetricDimensions
-				dimensions = append(dimensions, cwTypes.Dimension{Name: aws.String(k), Value: aws.String(v)})
-			}
-			params := &cw.GetMetricStatisticsInput{
-				MetricName: aws.String(*q.UsageMetric.MetricName),
-				Namespace:  aws.String(*q.UsageMetric.MetricNamespace),
-				StartTime:  aws.Time(time.Now().Add(time.Minute * -10)),
-				EndTime:    aws.Time(time.Now()),
-				Period:     aws.Int32(60 * 10), // Get latest data, 5 minutes isn't always enough
-				Dimensions: dimensions,
-				Statistics: []cwTypes.Statistic{cwTypes.Statistic(*q.UsageMetric.MetricStatisticRecommendation)},
-			}
-			resp, err := cwclient.GetMetricStatistics(ctx, params, cwOpts)
-
-			if err == nil {
-				if len(resp.Datapoints) > 0 { // if Quota has Usage, it will be set, otherwise it's = 0
-					switch *q.UsageMetric.MetricStatisticRecommendation {
-					case "Maximum":
-						mq.Usage = *resp.Datapoints[0].Maximum
-					case "Minimum":
-						mq.Usage = *resp.Datapoints[0].Minimum
-					case "Average":
-						mq.Usage = *resp.Datapoints[0].Average
-					case "Sum":
-						mq.Usage = (*resp.Datapoints[0].Sum) / (60 * 10) // Sum is calculated over `Period` interval, should be equal
-					case "SampleCount":
-						mq.Usage = *resp.Datapoints[0].SampleCount
-					}
-				}
-			} else {
-				slog.Warn("Unable to retrieve CloudWatch usage", "error", err)
-			}
-			check[*q.QuotaCode] = true
+	if collectUsage { // Collect quota usage if enabled
+		quotasUsage = getQuotasUsage(ctx, quotasMerged, cwclient, region)
+	} else { // Otherwise just create quotasUsage struct from quotasMerged
+		for _, q := range quotasMerged {
+			quotasUsage = append(quotasUsage, QuotaUsage{q, 0})
 		}
-		quotasUsage = append(quotasUsage, mq)
 	}
 
 	m, err := Transform(quotasUsage, collectUsage, region, account)
@@ -363,4 +327,51 @@ func getDefaultListServiceQuotas(ctx context.Context, client *sq.Client, opts fu
 
 	}
 	return r, nil
+}
+
+func getQuotasUsage(ctx context.Context, quotas []sqTypes.ServiceQuota, cwclient *cw.Client, region string) []QuotaUsage {
+	var quotasUsage []QuotaUsage
+	check := map[string]bool{}
+	cwOpts := func(o *cw.Options) { o.Region = region }
+	for _, q := range quotas {
+		mq := QuotaUsage{q, 0}
+		if q.UsageMetric != nil && !check[*q.QuotaCode] {
+			var dimensions []cwTypes.Dimension
+			for k, v := range q.UsageMetric.MetricDimensions { // form Dimensions filter for GetMetricStatisticsInput based on UsageMetric.MetricDimensions
+				dimensions = append(dimensions, cwTypes.Dimension{Name: aws.String(k), Value: aws.String(v)})
+			}
+			params := &cw.GetMetricStatisticsInput{
+				MetricName: aws.String(*q.UsageMetric.MetricName),
+				Namespace:  aws.String(*q.UsageMetric.MetricNamespace),
+				StartTime:  aws.Time(time.Now().Add(time.Minute * -10)),
+				EndTime:    aws.Time(time.Now()),
+				Period:     aws.Int32(60 * 10), // Get latest data, 5 minutes isn't always enough
+				Dimensions: dimensions,
+				Statistics: []cwTypes.Statistic{cwTypes.Statistic(*q.UsageMetric.MetricStatisticRecommendation)},
+			}
+			resp, err := cwclient.GetMetricStatistics(ctx, params, cwOpts)
+
+			if err == nil {
+				if len(resp.Datapoints) > 0 { // if Quota has Usage, it will be set, otherwise it's = 0
+					switch *q.UsageMetric.MetricStatisticRecommendation {
+					case "Maximum":
+						mq.Usage = *resp.Datapoints[0].Maximum
+					case "Minimum":
+						mq.Usage = *resp.Datapoints[0].Minimum
+					case "Average":
+						mq.Usage = *resp.Datapoints[0].Average
+					case "Sum":
+						mq.Usage = (*resp.Datapoints[0].Sum) / (60 * 10) // Sum is calculated over `Period` interval, should be equal
+					case "SampleCount":
+						mq.Usage = *resp.Datapoints[0].SampleCount
+					}
+				}
+			} else {
+				slog.Warn("Unable to retrieve CloudWatch usage", "error", err)
+			}
+			check[*q.QuotaCode] = true
+		}
+		quotasUsage = append(quotasUsage, mq)
+	}
+	return quotasUsage
 }
