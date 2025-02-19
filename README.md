@@ -83,7 +83,9 @@ $ ./aws_quota_exporter -h
 ```
 Usage of ./aws_quota_exporter:
   -cache.duration duration
-        cache expiry time (seconds). (default 300ns)
+        Cache expiry time. (default 5m0s)
+  -collect.usage
+        Collect quotas usage where available (NOTE: CloudWatch calls aren't free)
   -config.file string
         Path to configuration file. (default "/etc/aqe/config.yml")
   -log.folder string
@@ -93,7 +95,7 @@ Usage of ./aws_quota_exporter:
   -log.level string
         Log level to log from (DEBUG|INFO|WARN|ERROR). (default "INFO")
   -prom.port int
-        port to expose prometheus metrics. (default 10100)
+        Port to expose prometheus metrics. (default 10100)
   -version
         Display aqe version
 ```
@@ -110,6 +112,13 @@ The `serviceCode` is the AWS service identifier. To identify the `serviceCode` f
 ```bash
 aws service-quotas list-services
 ```
+
+## Quotas usage
+You can enable quotas usage collection for quotas that have them defined with `-collect.usage` option. It will collect latest usage value from CloudWatch using GetMetricStatistics API method. Please keep in mind that CloudWatch API calls aren't free, but there are no charges to use GetMetricStatistics for up to 1 million API requests.
+Exporter will create new metric with the same name as quota, but with label: `"type": "usage"` (quotas are marked with: `"type": "quota"`). This way is possible to use promQL query to get quota usage ratio, example: `{job="quota-exporter", type="usage"} / ignoring (type) {job="quota-exporter", type="quota"}`
+
+NOTE: It requires `cloudwatch:GetMetricStatistics` permission in IAM policy.
+
 ## Docker Image Usage
 Using the docker image avaliable on [dockerhub](https://hub.docker.com/r/ugwuanyi/aqe)
 ```bash
