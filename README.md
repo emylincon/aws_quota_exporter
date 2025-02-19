@@ -114,8 +114,12 @@ aws service-quotas list-services
 ```
 
 ## Quotas usage
-You can enable quotas usage collection for quotas that have them defined with `-collect.usage` option. It will collect latest usage value from CloudWatch using GetMetricStatistics API method. Please keep in mind that CloudWatch API calls aren't free, but there are no charges to use GetMetricStatistics for up to 1 million API requests.
-Exporter will create new metric with the same name as quota, but with label: `"type": "usage"` (quotas are marked with: `"type": "quota"`). This way is possible to use promQL query to get quota usage ratio, example: `{job="quota-exporter", type="usage"} / ignoring (type) {job="quota-exporter", type="quota"}`
+You can enable quota usage collection with `-collect.usage` flag (ℹ️ Not all quotas have usage. see [docs](https://docs.aws.amazon.com/cognito/latest/developerguide/tracking-quotas-and-usage-in-cloud-watch-and-service-quotas.html)). The latest usage value from CloudWatch using GetMetricStatistics API method is collected. ⚠️  CloudWatch API calls aren't free! However, there are no charges to use GetMetricStatistics for up to 1 million API requests ([docs](https://aws.amazon.com/cloudwatch/pricing/)).
+The label `type="usage|quota` is used to differentiate the metrics. This `"type": "usage"` will export usage metrics while `"type": "quota"` will export quota metrics. 
+Example promQL query to get quota usage ratio: 
+`
+{job="quota-exporter", type="usage"} / {job="quota-exporter", type="quota"}
+`
 
 NOTE: It requires `cloudwatch:GetMetricStatistics` permission in IAM policy.
 
