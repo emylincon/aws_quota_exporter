@@ -14,7 +14,10 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws/arn"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
+	cw "github.com/aws/aws-sdk-go-v2/service/cloudwatch"
+	cwTypes "github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
 	sq "github.com/aws/aws-sdk-go-v2/service/servicequotas"
+	sqTypes "github.com/aws/aws-sdk-go-v2/service/servicequotas/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"golang.org/x/exp/slog"
 )
@@ -37,6 +40,12 @@ type chanData struct {
 	err     error
 }
 
+// To combine Quota + Usage data
+type QuotaUsage struct {
+	Quota sqTypes.ServiceQuota
+	Usage float64
+}
+
 // NewScraper creates a new Scraper
 func NewScraper() (*Scraper, error) {
 	cfg, err := config.LoadDefaultConfig(context.TODO())
@@ -48,7 +57,7 @@ func NewScraper() (*Scraper, error) {
 }
 
 // CreateScraper Scrape Quotas from AWS
-func (s *Scraper) CreateScraper(job JobConfig, cacheDuration *time.Duration) func() ([]*PrometheusMetric, error) {
+func (s *Scraper) CreateScraper(job JobConfig, cacheDuration *time.Duration, collectUsage bool) func() ([]*PrometheusMetric, error) {
 
 	cfg := s.getAWSConfig(job.Role)
 	AccountID := getAWSAccountID(cfg)
@@ -82,13 +91,14 @@ func (s *Scraper) CreateScraper(job JobConfig, cacheDuration *time.Duration) fun
 
 		ctx := context.Background()
 		cfg := s.getAWSConfig(job.Role) // get credentials incase it expires
-		sclient := sq.NewFromConfig(cfg)
+		sqclient := sq.NewFromConfig(cfg)
+		cwclient := cw.NewFromConfig(cfg)
 		input := sq.ListServiceQuotasInput{ServiceCode: &job.ServiceCode, MaxResults: &maxResults}
 		metricList := []*PrometheusMetric{}
 		c := make(chan chanData)
 		// create goroutine workers
 		for _, region := range job.Regions {
-			go getServiceQuotas(ctx, region, AccountID, &input, sclient, c)
+			go getServiceQuotas(ctx, collectUsage, region, AccountID, &input, sqclient, cwclient, c)
 		}
 		// retrieve channel results from goroutines
 		for i := 0; i < len(job.Regions); i++ {
@@ -163,6 +173,7 @@ func (s *Scraper) getAWSConfig(role string) aws.Config {
 	cfg.Credentials = aws.NewCredentialsCache(creds)
 	return cfg
 }
+
 func validateRoleARN(role string) bool {
 	if arn.IsARN(role) {
 		arnObj, err := arn.Parse(role)
@@ -177,30 +188,46 @@ func validateRoleARN(role string) bool {
 }
 
 // Transform to prometheus format
-func Transform(quotas *sq.ListServiceQuotasOutput, defaultQuotas *sq.ListAWSDefaultServiceQuotasOutput, region, account string) ([]*PrometheusMetric, error) {
-	quotas.Quotas = append(quotas.Quotas, defaultQuotas.Quotas...)
+func Transform(quotas []QuotaUsage, collectUsage bool, region, account string) ([]*PrometheusMetric, error) {
 	g := NewGrouping(maxSimilarity, region, account)
-	mg, metrics := g.GroupMetrics(quotas.Quotas)
+	mg, metrics := g.GroupMetrics(quotas, collectUsage)
 	for _, d := range mg {
 		if len(d) == 1 { // one item in group
+			var quotaMetric, quotaUsage *PrometheusMetric
 			quota := d[0]
-			metric := &PrometheusMetric{
-				Name:  createMetricName(*quota.Quota.ServiceCode, *quota.Quota.QuotaName),
-				Value: *quota.Quota.Value,
-				Labels: map[string]string{
-					"adjustable":   strconv.FormatBool(quota.Quota.Adjustable),
-					"global_quota": strconv.FormatBool(quota.Quota.GlobalQuota),
-					"unit":         *quota.Quota.Unit,
-					"region":       region,
-					"account":      account,
-					"name":         *quota.Quota.QuotaName,
-				},
-				Desc: createDescription(*quota.Quota.ServiceName, *quota.Quota.QuotaName),
+			quotaMetric = createPromMetric(quota, "quota", region, account)
+			metrics = append(metrics, quotaMetric)
+
+			// if Quota has UsageMetric, create also _usage metric
+			if collectUsage && quota.Quota.UsageMetric != nil {
+				quotaUsage = createPromMetric(quota, "usage", region, account)
+				metrics = append(metrics, quotaUsage)
 			}
-			metrics = append(metrics, metric)
 		}
 	}
 	return metrics, nil
+}
+
+// creates a Prometheus metric based on the given metric group (for single quotas).
+func createPromMetric(m MetricGroup, metric_type, region, account string) *PrometheusMetric {
+	value := *m.Quota.Value
+	if metric_type == "usage" {
+		value = m.Usage
+	}
+	return &PrometheusMetric{
+		Name:  createMetricName(*m.Quota.ServiceCode, *m.Quota.QuotaName),
+		Value: value,
+		Labels: map[string]string{
+			"type":         metric_type,
+			"adjustable":   strconv.FormatBool(m.Quota.Adjustable),
+			"global_quota": strconv.FormatBool(m.Quota.GlobalQuota),
+			"unit":         *m.Quota.Unit,
+			"region":       region,
+			"account":      account,
+			"name":         *m.Quota.QuotaName,
+		},
+		Desc: createDescription(*m.Quota.ServiceName, *m.Quota.QuotaName),
+	}
 }
 
 func createMetricName(serviceCode, quotaName string) string {
@@ -211,25 +238,26 @@ func createDescription(serviceName, quotaName string) string {
 	return fmt.Sprintf("%s: %s", serviceName, quotaName)
 }
 
-func getServiceQuotas(ctx context.Context, region, account string, sqInput *sq.ListServiceQuotasInput, client *sq.Client, c chan chanData) {
-	opts := func(o *sq.Options) { o.Region = region }
+func getServiceQuotas(ctx context.Context, collectUsage bool, region, account string, sqInput *sq.ListServiceQuotasInput, sqclient *sq.Client, cwclient *cw.Client, c chan chanData) {
+	sqOpts := func(o *sq.Options) { o.Region = region }
 	asqInput := &sq.ListAWSDefaultServiceQuotasInput{ServiceCode: sqInput.ServiceCode, MaxResults: &maxResults}
 	var wg sync.WaitGroup
 	var r *sq.ListServiceQuotasOutput
 	var d *sq.ListAWSDefaultServiceQuotasOutput
+	var quotasUsage []QuotaUsage
 	errs := [2]error{}
 
 	wg.Add(2)
 
 	// Get applied Quotas
 	go func() {
-		r, errs[0] = getListServiceQuotas(ctx, client, opts, sqInput)
+		r, errs[0] = getListServiceQuotas(ctx, sqclient, sqOpts, sqInput)
 		wg.Done()
 	}()
 
 	// Get default Quotas
 	go func() {
-		d, errs[1] = getDefaultListServiceQuotas(ctx, client, opts, asqInput)
+		d, errs[1] = getDefaultListServiceQuotas(ctx, sqclient, sqOpts, asqInput)
 		wg.Done()
 	}()
 
@@ -243,10 +271,19 @@ func getServiceQuotas(ctx context.Context, region, account string, sqInput *sq.L
 			c <- data
 			return
 		}
-
 	}
 
-	m, err := Transform(r, d, region, account)
+	// merge applied Quotas with defaults
+	quotasMerged := append(r.Quotas, d.Quotas...)
+	if collectUsage { // Collect quota usage if enabled
+		quotasUsage = getQuotasUsage(ctx, quotasMerged, cwclient, region)
+	} else { // Otherwise just create quotasUsage struct from quotasMerged
+		for _, q := range quotasMerged {
+			quotasUsage = append(quotasUsage, QuotaUsage{q, 0})
+		}
+	}
+
+	m, err := Transform(quotasUsage, collectUsage, region, account)
 	data := chanData{
 		metrics: m,
 		err:     err,
@@ -290,4 +327,51 @@ func getDefaultListServiceQuotas(ctx context.Context, client *sq.Client, opts fu
 
 	}
 	return r, nil
+}
+
+func getQuotasUsage(ctx context.Context, quotas []sqTypes.ServiceQuota, cwclient *cw.Client, region string) []QuotaUsage {
+	var quotasUsage []QuotaUsage
+	check := map[string]bool{}
+	cwOpts := func(o *cw.Options) { o.Region = region }
+	for _, q := range quotas {
+		mq := QuotaUsage{q, 0}
+		if q.UsageMetric != nil && !check[*q.QuotaCode] {
+			var dimensions []cwTypes.Dimension
+			for k, v := range q.UsageMetric.MetricDimensions { // form Dimensions filter for GetMetricStatisticsInput based on UsageMetric.MetricDimensions
+				dimensions = append(dimensions, cwTypes.Dimension{Name: aws.String(k), Value: aws.String(v)})
+			}
+			params := &cw.GetMetricStatisticsInput{
+				MetricName: aws.String(*q.UsageMetric.MetricName),
+				Namespace:  aws.String(*q.UsageMetric.MetricNamespace),
+				StartTime:  aws.Time(time.Now().Add(time.Minute * -10)),
+				EndTime:    aws.Time(time.Now()),
+				Period:     aws.Int32(60 * 10), // Get latest data, 5 minutes isn't always enough
+				Dimensions: dimensions,
+				Statistics: []cwTypes.Statistic{cwTypes.Statistic(*q.UsageMetric.MetricStatisticRecommendation)},
+			}
+			resp, err := cwclient.GetMetricStatistics(ctx, params, cwOpts)
+
+			if err == nil {
+				if len(resp.Datapoints) > 0 { // if Quota has Usage, it will be set, otherwise it's = 0
+					switch *q.UsageMetric.MetricStatisticRecommendation {
+					case "Maximum":
+						mq.Usage = *resp.Datapoints[0].Maximum
+					case "Minimum":
+						mq.Usage = *resp.Datapoints[0].Minimum
+					case "Average":
+						mq.Usage = *resp.Datapoints[0].Average
+					case "Sum":
+						mq.Usage = (*resp.Datapoints[0].Sum) / (60 * 10) // Sum is calculated over `Period` interval, should be equal
+					case "SampleCount":
+						mq.Usage = *resp.Datapoints[0].SampleCount
+					}
+				}
+			} else {
+				slog.Warn("Unable to retrieve CloudWatch usage", "error", err)
+			}
+			check[*q.QuotaCode] = true
+		}
+		quotasUsage = append(quotasUsage, mq)
+	}
+	return quotasUsage
 }
