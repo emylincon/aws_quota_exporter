@@ -1,7 +1,6 @@
 package pkg
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -37,7 +36,8 @@ func Test_createDesc(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := createDesc(tt.args.metric); !reflect.DeepEqual(got, tt.want) {
+			got := createDesc(tt.args.metric)
+			if got.String() != tt.want.String() {
 				t.Errorf("createDesc() = %v, want %v", got, tt.want)
 			}
 		})
