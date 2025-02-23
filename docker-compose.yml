@@ -13,7 +13,7 @@ services:
       - ${AWS_FOLDER}:/exporter/.aws/
     environment:
       - AWS_PROFILE=${AWS_PROFILE}
-    command: --log.level=debug --log.format=text
+    command: --log.level=debug --log.format=text --collect.usage --cache.duration=30m
 
   prometheus:
     image: prom/prometheus

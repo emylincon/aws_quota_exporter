@@ -14,7 +14,7 @@ tasks:
   start:
     desc: "start application in dev mode"
     cmds:
-      - export AWS_PROFILE=emeka;go run . --prom.port=10100 --config.file=example/config.yml --log.level=debug --log.format=text --cache.duration=1m
+      - export AWS_PROFILE=emeka;go run . --prom.port=10100 --config.file=example/config.yml --log.level=debug --log.format=text --cache.duration=1m --collect.usage
     silent: true
   retest:
     desc: "go release build test"
@@ -39,16 +39,11 @@ tasks:
   compose-up:
     desc: "docker compose up"
     cmds:
-      - task: compose-build
-      - docker-compose up -d
+      - docker-compose up -d --build
   compose-down:
     desc: "docker compose down"
     cmds:
       - docker-compose down
-  compose-build:
-    desc: "build docker compose images"
-    cmds:
-      - docker-compose build
   docker-build:
     desc: "build docker image"
     cmds:
