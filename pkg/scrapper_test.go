@@ -14,6 +14,20 @@ import (
 	sqTypes "github.com/aws/aws-sdk-go-v2/service/servicequotas/types"
 )
 
+type MockCloudWatchClient struct {
+	CloudWatchClient
+}
+
+func (m *MockCloudWatchClient) GetMetricStatistics(ctx context.Context, params *cw.GetMetricStatisticsInput, optFns ...func(*cw.Options)) (*cw.GetMetricStatisticsOutput, error) {
+	return &cw.GetMetricStatisticsOutput{
+		Datapoints: []cwTypes.Datapoint{
+			{
+				Average: aws.Float64(50),
+			},
+		},
+	}, nil
+}
+
 func TestNewScraper(t *testing.T) {
 	cfg, _ := config.LoadDefaultConfig(context.TODO())
 	tests := []struct {
@@ -222,18 +236,4 @@ func Test_getQuotasUsage(t *testing.T) {
 			}
 		})
 	}
-}
-
-type MockCloudWatchClient struct {
-	CloudWatchClient
-}
-
-func (m *MockCloudWatchClient) GetMetricStatistics(ctx context.Context, params *cw.GetMetricStatisticsInput, optFns ...func(*cw.Options)) (*cw.GetMetricStatisticsOutput, error) {
-	return &cw.GetMetricStatisticsOutput{
-		Datapoints: []cwTypes.Datapoint{
-			{
-				Average: aws.Float64(50),
-			},
-		},
-	}, nil
 }
