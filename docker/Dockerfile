@@ -1,4 +1,4 @@
-FROM golang:alpine as builder
+FROM golang:alpine AS builder
 
 ARG APP_VERSION="0.0.0"
 ARG APP_COMMIT="latest"
