@@ -40,10 +40,15 @@ type chanData struct {
 	err     error
 }
 
-// To combine Quota + Usage data
+// QuotaUsage to combine Quota + Usage data
 type QuotaUsage struct {
 	Quota sqTypes.ServiceQuota
 	Usage float64
+}
+
+// CloudWatchClient interface for easier testing
+type CloudWatchClient interface {
+	GetMetricStatistics(ctx context.Context, params *cw.GetMetricStatisticsInput, optFns ...func(*cw.Options)) (*cw.GetMetricStatisticsOutput, error)
 }
 
 // NewScraper creates a new Scraper
@@ -208,17 +213,17 @@ func Transform(quotas []QuotaUsage, collectUsage bool, region, account string) (
 	return metrics, nil
 }
 
-// creates a Prometheus metric based on the given metric group (for single quotas).
-func createPromMetric(m MetricGroup, metric_type, region, account string) *PrometheusMetric {
+// createPromMetric creates a Prometheus metric based on the given metric group (for single quotas).
+func createPromMetric(m MetricGroup, metricType, region, account string) *PrometheusMetric {
 	value := *m.Quota.Value
-	if metric_type == "usage" {
+	if metricType == "usage" {
 		value = m.Usage
 	}
 	return &PrometheusMetric{
 		Name:  createMetricName(*m.Quota.ServiceCode, *m.Quota.QuotaName),
 		Value: value,
 		Labels: map[string]string{
-			"type":         metric_type,
+			"type":         metricType,
 			"adjustable":   strconv.FormatBool(m.Quota.Adjustable),
 			"global_quota": strconv.FormatBool(m.Quota.GlobalQuota),
 			"unit":         *m.Quota.Unit,
@@ -238,7 +243,7 @@ func createDescription(serviceName, quotaName string) string {
 	return fmt.Sprintf("%s: %s", serviceName, quotaName)
 }
 
-func getServiceQuotas(ctx context.Context, collectUsage bool, region, account string, sqInput *sq.ListServiceQuotasInput, sqclient *sq.Client, cwclient *cw.Client, c chan chanData) {
+func getServiceQuotas(ctx context.Context, collectUsage bool, region, account string, sqInput *sq.ListServiceQuotasInput, sqclient *sq.Client, cwclient CloudWatchClient, c chan chanData) {
 	sqOpts := func(o *sq.Options) { o.Region = region }
 	asqInput := &sq.ListAWSDefaultServiceQuotasInput{ServiceCode: sqInput.ServiceCode, MaxResults: &maxResults}
 	var wg sync.WaitGroup
@@ -329,8 +334,8 @@ func getDefaultListServiceQuotas(ctx context.Context, client *sq.Client, opts fu
 	return r, nil
 }
 
-func getQuotasUsage(ctx context.Context, quotas []sqTypes.ServiceQuota, cwclient *cw.Client, region string) []QuotaUsage {
-	var quotasUsage []QuotaUsage
+func getQuotasUsage(ctx context.Context, quotas []sqTypes.ServiceQuota, cwclient CloudWatchClient, region string) []QuotaUsage {
+	quotasUsage := []QuotaUsage{}
 	check := map[string]bool{}
 	cwOpts := func(o *cw.Options) { o.Region = region }
 	for _, q := range quotas {

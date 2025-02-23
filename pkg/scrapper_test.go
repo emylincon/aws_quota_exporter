@@ -9,6 +9,9 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	cw "github.com/aws/aws-sdk-go-v2/service/cloudwatch"
+	cwTypes "github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
+	sqTypes "github.com/aws/aws-sdk-go-v2/service/servicequotas/types"
 )
 
 func TestNewScraper(t *testing.T) {
@@ -127,4 +130,110 @@ func Test_validateRoleARN(t *testing.T) {
 			}
 		})
 	}
+}
+func Test_getQuotasUsage(t *testing.T) {
+	type args struct {
+		ctx    context.Context
+		quotas []sqTypes.ServiceQuota
+		region string
+	}
+	tests := []struct {
+		name string
+		args args
+		want []QuotaUsage
+	}{
+		{
+			name: "Test with empty quotas",
+			args: args{
+				ctx:    context.TODO(),
+				quotas: []sqTypes.ServiceQuota{},
+				region: "us-west-2",
+			},
+			want: []QuotaUsage{},
+		},
+		{
+			name: "Test with quotas without usage metrics",
+			args: args{
+				ctx: context.TODO(),
+				quotas: []sqTypes.ServiceQuota{
+					{
+						QuotaCode: aws.String("L-12345"),
+						QuotaName: aws.String("Test Quota"),
+						Value:     aws.Float64(100),
+					},
+				},
+				region: "us-west-2",
+			},
+			want: []QuotaUsage{
+				{
+					Quota: sqTypes.ServiceQuota{
+						QuotaCode: aws.String("L-12345"),
+						QuotaName: aws.String("Test Quota"),
+						Value:     aws.Float64(100),
+					},
+					Usage: 0,
+				},
+			},
+		},
+		{
+			name: "Test with quotas with usage metrics",
+			args: args{
+				ctx: context.TODO(),
+				quotas: []sqTypes.ServiceQuota{
+					{
+						QuotaCode: aws.String("L-12345"),
+						QuotaName: aws.String("Test Quota"),
+						Value:     aws.Float64(100),
+						UsageMetric: &sqTypes.MetricInfo{
+							MetricName:                    aws.String("CPUUtilization"),
+							MetricNamespace:               aws.String("AWS/EC2"),
+							MetricDimensions:              map[string]string{"InstanceId": "i-1234567890abcdef0"},
+							MetricStatisticRecommendation: aws.String("Average"),
+						},
+					},
+				},
+				region: "us-west-2",
+			},
+			want: []QuotaUsage{
+				{
+					Quota: sqTypes.ServiceQuota{
+						QuotaCode: aws.String("L-12345"),
+						QuotaName: aws.String("Test Quota"),
+						Value:     aws.Float64(100),
+						UsageMetric: &sqTypes.MetricInfo{
+							MetricName:                    aws.String("CPUUtilization"),
+							MetricNamespace:               aws.String("AWS/EC2"),
+							MetricDimensions:              map[string]string{"InstanceId": "i-1234567890abcdef0"},
+							MetricStatisticRecommendation: aws.String("Average"),
+						},
+					},
+					Usage: 50, // This should be set to the actual usage value from the mock CloudWatch client
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockCWClient := &MockCloudWatchClient{}
+			got := getQuotasUsage(tt.args.ctx, tt.args.quotas, mockCWClient, tt.args.region)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("getQuotasUsage() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+type MockCloudWatchClient struct {
+	CloudWatchClient
+}
+
+func (m *MockCloudWatchClient) GetMetricStatistics(ctx context.Context, params *cw.GetMetricStatisticsInput, optFns ...func(*cw.Options)) (*cw.GetMetricStatisticsOutput, error) {
+	return &cw.GetMetricStatisticsOutput{
+		Datapoints: []cwTypes.Datapoint{
+			{
+				Average: aws.Float64(50),
+			},
+		},
+	}, nil
 }
