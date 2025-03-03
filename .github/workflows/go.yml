@@ -24,14 +24,14 @@ jobs:
       - name: yq version
         run: yq --version
       - name: Config Helm yaml
-        uses: mikefarah/yq@v4.45.1
-        with:
-          cmd: |
-            version="2.0.1"
-            configfile="kubernetes/helm/aqe/Chart.yaml"
-            yq -i ".appVersion = \"${version}\"" $configfile
-            yq -i ".version = \"${version}\"" $configfile
-            cat $configfile
+        # uses: mikefarah/yq@v4.45.1
+        # with:
+        #   cmd: |
+        run: |
+          version="2.0.1"
+          configfile="kubernetes/helm/aqe/Chart.yaml"
+          yq -i '.appVersion = '"${version}" $configfile
+          cat $configfile
 
       - name: Build
         run: go build -v ./...
