@@ -3,9 +3,6 @@ FROM golang:alpine AS builder
 ARG APP_VERSION="0.0.0"
 ARG APP_COMMIT="latest"
 
-ARG APP_VERSION="0.0.0"
-ARG APP_COMMIT="latest"
-
 WORKDIR /opt
 
 COPY . .
