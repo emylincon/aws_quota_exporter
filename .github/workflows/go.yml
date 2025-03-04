@@ -32,6 +32,7 @@ jobs:
           configfile="kubernetes/helm/aqe/Chart.yaml"
           content=".appVersion = \"${version}\""
           yq -i ".appVersion = \"${version}\"" $configfile
+          yq -i ".version = \"${version}\"" $configfile
           cat $configfile
 
       - name: Build
