@@ -2,41 +2,156 @@ name: releaser
 
 on:
   push:
-    tags:
-      - "*"
-
-permissions:
-  contents: write
+    branches: ["main"]
+    tags: ["*"]
 
 env:
-  charts_dir: kubernetes/helm
-  repo: https://github.com/emylincon/aws_quota_exporter
-  owner: emylincon
-  repo_name: aws_quota_exporter
+  APP_NAME: aqe
+  IMAGE_NAME: ugwuanyi/aqe
+  TEST_IMAGE: aqe/test
+  REPO: https://github.com/emylincon/aws_quota_exporter
+  GHCR: ghcr.io/emylincon/aws_quota_exporter
 
 jobs:
-  goreleaser:
-    name: goreleaser
+  prebuild:
+    name: prebuild
     runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    permissions:
+      contents: write
+    outputs:
+      tag_name: ${{ steps.get_tag_name.outputs.tag_name }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      - name: Bump version and push tag
+        id: tag_version
+        if: github.ref_type != 'tag'
+        uses: rymndhng/release-on-push-action@v0.28.0
         with:
-          fetch-depth: 0
+          bump_version_scheme: norelease
+          use_github_release_notes: true
+          tag_prefix: v
+      - name: Get the tag name
+        id: get_tag_name
+        run: |
+          echo "my-tag=${{ steps.tag_version.outputs.tag_name }}"
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            echo "tag_name=${{ github.ref }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag_name=${{ steps.tag_version.outputs.tag_name }}" >> "$GITHUB_OUTPUT"
+          fi
 
-      - name: Fetch all tags
-        run: git fetch --force --tags
+  docker:
+    name: Build docker image
+    needs: [prebuild]
+    permissions:
+      contents: write
+      packages: write
+    runs-on: ubuntu-latest
+    env:
+      REGISTRY_DOCKERHUB_ENABLED: ${{ secrets.DOCKERHUB_USERNAME != null }}
+      REGISTRY_GITHUB_ENABLED: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ^1.21
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Set up docker testing tool
+        run: curl -LO https://storage.googleapis.com/container-structure-test/latest/container-structure-test-linux-amd64 && chmod +x container-structure-test-linux-amd64 && sudo mv container-structure-test-linux-amd64 /usr/local/bin/container-structure-test
 
       - name: Login to DockerHub Registry
+        if: ${{ env.REGISTRY_DOCKERHUB_ENABLED == 'true' && needs.prebuild.outputs.tag_name != null }}
         run: echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
 
+      - name: Login to Github Container Registry
+        if: ${{ env.REGISTRY_GITHUB_ENABLED == 'true' && needs.prebuild.outputs.tag_name != null }}
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build Test image
+        run: docker build -t ${{ env.TEST_IMAGE }} -f docker/Dockerfile .
+
+      - name: Run Image tests
+        run: container-structure-test test --config docker/tests.yaml --image ${{ env.TEST_IMAGE }}
+
+      - name: Push to dockerhub
+        if: ${{ env.REGISTRY_DOCKERHUB_ENABLED == 'true' && needs.prebuild.outputs.tag_name != null }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: "docker/Dockerfile"
+          platforms: linux/amd64,linux/arm64,linux/arm/v7
+          push: true
+          build-args: |
+            APP_VERSION=${{ github.ref_name }}
+            APP_COMMIT=${{ github.sha }}
+          tags: |
+            "${{ env.IMAGE_NAME }}:latest"
+            "${{ env.IMAGE_NAME }}:${{ needs.prebuild.outputs.tag_name }}"
+
+      - name: Push to ghcr
+        if: ${{ env.REGISTRY_GITHUB_ENABLED == 'true' && needs.prebuild.outputs.tag_name != null }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: "docker/Dockerfile"
+          platforms: linux/amd64,linux/arm64,linux/arm/v7
+          push: true
+          labels: org.opencontainers.image.source=${{ env.REPO }},org.opencontainers.image.version=${{ needs.prebuild.outputs.tag_name }}
+          tags: |
+            "${{ env.GHCR }}/${{ env.APP_NAME }}:latest"
+            "${{ env.GHCR }}/${{ env.APP_NAME }}:${{ needs.prebuild.outputs.tag_name }}"
+          build-args: |
+            APP_VERSION=${{ needs.prebuild.outputs.tag_name }}
+            APP_COMMIT=${{ github.sha }}
+
+
+  release-tag:
+    name: Build docker image
+    needs: [prebuild]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create Release
+        if: github.ref_type == 'tag'
+        id: create_release
+        uses: ghalactic/github-release-from-tag@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          generateReleaseNotes: "true"
+          draft: false
+          prerelease: false
+
+  goreleaser:
+    name: goreleaser
+    needs: [prebuild]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version: stable
-
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v4
+        uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
           version: latest
@@ -46,7 +161,7 @@ jobs:
 
   chartreleaser:
     name: Releaser Helm Chart
-    needs: goreleaser
+    needs: [prebuild, docker, goreleaser]
     # depending on default permission settings for your org (contents being read-only or read-write for workloads), you will have to add permissions
     # see: https://docs.github.com/en/actions/security-guides/automatic-token-authentication#modifying-the-permissions-for-the-github_token
     permissions:
@@ -63,8 +178,26 @@ jobs:
           git config user.name "$GITHUB_ACTOR"
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
-      - name: install yq
-        uses: chrisdickinson/setup-yq@latest
+      - name: Config Chart Helm Version
+        run: |
+          tag_name=${{ needs.prebuild.outputs.tag_name }}
+          version="${tag_name#v}"
+          configfile="kubernetes/helm/aqe/Chart.yaml"
+          yq -i ".appVersion = \"${version}\"" $configfile
+          yq -i ".version = \"${version}\"" $configfile
+          cat $configfile
+      
+      - name: Update Image version
+        run: |
+          tag_name=${{ needs.prebuild.outputs.tag_name }}
+          configfile="kubernetes/helm/aqe/values.yaml"
+          yq -i ".image.tag = \"${tag_name}\"" $configfile
+          cat $configfile
+
+      - name: Push Changes to main
+        run: |
+          git commit -am "Automated: Update Helm Chart version"
+          git push
 
       - name: Install Helm
         uses: azure/setup-helm@v3
@@ -76,19 +209,29 @@ jobs:
 
       - name: update index.yaml
         run: |
+          tag_name=${{ needs.prebuild.outputs.tag_name }}
+          version="${tag_name#v}" # without the v
           indexfile=".cr-release-packages/index.yaml"
-          appversion=$(yq r $indexfile 'entries.aqe[-1].appVersion')
-          chartversion=$(yq r $indexfile 'entries.aqe[-1].version')
 
-          pkg=helm-chart-aqe-${chartversion}.tgz
-          mv .cr-release-packages/aqe-${chartversion}.tgz .cr-release-packages/$pkg
+          pkg=helm-chart-aqe-${version}.tgz
+          mv .cr-release-packages/aqe-${version}.tgz .cr-release-packages/$pkg
 
           wget -q https://github.com/emylincon/aws_quota_exporter/raw/gh-pages/index.yaml
 
-          chart="${{ env.repo }}/releases/download/v${appversion}/${pkg}"
+          chart="${{ env.REPO }}/releases/download/${tag_name}/${pkg}"
           yq w -i $indexfile "entries.aqe[-1].urls[0]" ${chart}
-          yq m -a -i $indexfile index.yaml
-          mv $indexfile index.yaml
+
+          # update chart URL
+          yq -i ".entries.aqe[-1].urls[0] = \"${chart}\"" $indexfile
+
+          # merge entries.aqe two index.yaml files
+          yq eval-all '.entries.aqe as $item ireduce ({}; .entries.aqe += $item) | .entries.aqe' $indexfile index.yaml > merge_entries.yaml
+
+          # update index.yaml with merged entries.aqe
+          yq eval '.entries.aqe = load("merge_entries.yaml")' $indexfile > index.yaml
+
+          # cleanup
+          rm merge_entries.yaml
 
       # https://github.com/marketplace/actions/upload-to-github-release
       - name: git release update
