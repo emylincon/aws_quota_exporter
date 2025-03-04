@@ -65,8 +65,9 @@ func main() {
 		logFormatType = flag.String("log.format", "text", "Format of log messages (text or json).")
 		logFolder     = flag.String("log.folder", "stdout", "Folder to store logfiles. logs to stdout if not specified.")
 		logLevel      = flag.String("log.level", "INFO", "Log level to log from (DEBUG|INFO|WARN|ERROR).")
-		promPort      = flag.Int("prom.port", 10100, "port to expose prometheus metrics.")
-		cacheDuration = flag.Duration("cache.duration", 300, "cache expiry time (seconds).")
+		promPort      = flag.Int("prom.port", 10100, "Port to expose prometheus metrics.")
+		cacheDuration = flag.Duration("cache.duration", 300*time.Second, "Cache expiry time.")
+		collectUsage  = flag.Bool("collect.usage", false, "Collect quotas usage where available (NOTE: CloudWatch calls aren't free)")
 		Version       = flag.Bool("version", false, "Display aqe version")
 	)
 	flag.Parse()
@@ -100,7 +101,7 @@ func main() {
 	slog.Info("Registering scrappers")
 	for _, job := range qcl.Jobs {
 
-		pc := pkg.NewPrometheusCollector(s.CreateScraper(job, cacheDuration))
+		pc := pkg.NewPrometheusCollector(s.CreateScraper(job, cacheDuration, *collectUsage))
 		err = reg.Register(pc)
 		if err != nil {
 			slog.Error("Failed to register metrics: "+err.Error(), "serviceCode", job.ServiceCode, "regions", job.Regions, "role", job.Role)
