@@ -64,24 +64,24 @@ jobs:
           yq -i ".image.tag = \"${tag_name}\"" $configfile
           cat $configfile
 
-      - name: Push Changes to main
-        run: |
-          branch="auto/releaser-pipeline${{ env.tag_name }}"
-          git checkout -b $branch
-          git commit -am "releaser (pipeline): Update Helm Chart version"
-          git push --set-upstream origin $branch
+      # - name: Push Changes to main
+      #   run: |
+      #     branch="auto/releaser-pipeline${{ env.tag_name }}"
+      #     git checkout -b $branch
+      #     git commit -am "releaser (pipeline): Update Helm Chart version"
+      #     git push --set-upstream origin $branch
 
-      - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v3.10.1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "releaser (pipeline): Update Helm Chart version ${{ env.tag_name }}"
-          title: "releaser (pipeline): Update Helm Chart version ${{ env.tag_name }}"
-          body: |
-            # Description
-            Update Helm Chart version ${{ env.tag_name }}
-          branch: auto/releaser-pipeline${{ env.tag_name }}
-          base: main
+      # - name: Create Pull Request
+      #   uses: peter-evans/create-pull-request@v3.10.1
+      #   with:
+      #     token: ${{ secrets.GITHUB_TOKEN }}
+      #     commit-message: "releaser (pipeline): Update Helm Chart version ${{ env.tag_name }}"
+      #     title: "releaser (pipeline): Update Helm Chart version ${{ env.tag_name }}"
+      #     body: |
+      #       # Description
+      #       Update Helm Chart version ${{ env.tag_name }}
+      #     branch: auto/releaser-pipeline${{ env.tag_name }}
+      #     base: main
 
       - name: Install Helm
         uses: azure/setup-helm@v3
@@ -96,6 +96,8 @@ jobs:
           tag_name=${{ env.tag_name }}
           version="${tag_name#v}" # without the v
           indexfile=".cr-release-packages/index.yaml"
+
+          ls -la .cr-release-packages
 
           pkg=helm-chart-aqe-${version}.tgz
           mv .cr-release-packages/aqe-${version}.tgz .cr-release-packages/$pkg
