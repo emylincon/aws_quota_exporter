@@ -138,6 +138,7 @@ jobs:
   goreleaser:
     name: goreleaser
     needs: [prebuild]
+    if: needs.prebuild.outputs.tag_name != null 
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -162,6 +163,7 @@ jobs:
   chartreleaser:
     name: Releaser Helm Chart
     needs: [prebuild, docker, goreleaser]
+    if: needs.prebuild.outputs.tag_name != null
     # depending on default permission settings for your org (contents being read-only or read-write for workloads), you will have to add permissions
     # see: https://docs.github.com/en/actions/security-guides/automatic-token-authentication#modifying-the-permissions-for-the-github_token
     permissions:
