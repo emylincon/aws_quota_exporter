@@ -9,6 +9,9 @@ on:
   pull_request:
     branches: ["main"]
 
+env:
+  tag_name: v2.0.1
+  REPO: https://github.com/emylincon/aws_quota_exporter
 
 jobs:
   build:
@@ -47,7 +50,7 @@ jobs:
 
       - name: Config Chart Helm Version
         run: |
-          tag_name=${{ needs.prebuild.outputs.tag_name }}
+          tag_name=${{ env.tag_name }}
           version="${tag_name#v}"
           configfile="kubernetes/helm/aqe/Chart.yaml"
           yq -i ".appVersion = \"${version}\"" $configfile
@@ -56,15 +59,28 @@ jobs:
       
       - name: Update Image version
         run: |
-          tag_name=${{ needs.prebuild.outputs.tag_name }}
+          tag_name=${{ env.tag_name }}
           configfile="kubernetes/helm/aqe/values.yaml"
           yq -i ".image.tag = \"${tag_name}\"" $configfile
           cat $configfile
 
       - name: Push Changes to main
         run: |
+          git checkout -b auto/releaser-pipeline${{ env.tag_name }}
           git commit -am "releaser (pipeline): Update Helm Chart version"
           git push
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v3.10.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "releaser (pipeline): Update Helm Chart version ${{ env.tag_name }}"
+          title: "releaser (pipeline): Update Helm Chart version ${{ env.tag_name }}"
+          body: |
+            # Description
+            Update Helm Chart version ${{ env.tag_name }}
+          branch: auto/releaser-pipeline${{ env.tag_name }}
+          base: main
 
       - name: Install Helm
         uses: azure/setup-helm@v3
@@ -76,7 +92,7 @@ jobs:
 
       - name: Add new chart entry to index.yaml
         run: |
-          tag_name=${{ needs.prebuild.outputs.tag_name }}
+          tag_name=${{ env.tag_name }}
           version="${tag_name#v}" # without the v
           indexfile=".cr-release-packages/index.yaml"
 
@@ -117,4 +133,4 @@ jobs:
           exclude_assets: ".cr-release-packages"
           publish_dir: .
           enable_jekyll: true
-          commit_message: "Tag {{ needs.prebuild.outputs.tag_name }} release update"
+          commit_message: "Tag {{ env.tag_name }} release update"
