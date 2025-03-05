@@ -197,7 +197,7 @@ jobs:
 
       - name: Push Changes to main
         run: |
-          git commit -am "Automated: Update Helm Chart version"
+          git commit -am "releaser (pipeline): Update Helm Chart version"
           git push
 
       - name: Install Helm
@@ -208,7 +208,7 @@ jobs:
           helm package kubernetes/helm/aqe -d .cr-release-packages/
           helm repo index .cr-release-packages
 
-      - name: update index.yaml
+      - name: Add new chart entry to index.yaml
         run: |
           tag_name=${{ needs.prebuild.outputs.tag_name }}
           version="${tag_name#v}" # without the v
@@ -218,14 +218,14 @@ jobs:
           mv .cr-release-packages/aqe-${version}.tgz .cr-release-packages/$pkg
 
           wget -q https://github.com/emylincon/aws_quota_exporter/raw/gh-pages/index.yaml
-
+          
+          # set chart remote URL
           chart="${{ env.REPO }}/releases/download/${tag_name}/${pkg}"
-          yq w -i $indexfile "entries.aqe[-1].urls[0]" ${chart}
 
           # update chart URL
           yq -i ".entries.aqe[-1].urls[0] = \"${chart}\"" $indexfile
 
-          # merge entries.aqe from index.yaml & .cr-release-packages/index.yaml
+          # merge entries.aqe two index.yaml files
           yq eval-all '.entries.aqe as $item ireduce ({}; .entries.aqe += $item) | .entries.aqe' $indexfile index.yaml > merge_entries.yaml
 
           # update index.yaml with merged entries.aqe
@@ -251,3 +251,4 @@ jobs:
           exclude_assets: ".cr-release-packages"
           publish_dir: .
           enable_jekyll: true
+          commit_message: "Tag {{ needs.prebuild.outputs.tag_name }} release update"
