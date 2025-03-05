@@ -66,9 +66,10 @@ jobs:
 
       - name: Push Changes to main
         run: |
-          git checkout -b auto/releaser-pipeline${{ env.tag_name }}
+          branch="auto/releaser-pipeline${{ env.tag_name }}"
+          git checkout -b $branch
           git commit -am "releaser (pipeline): Update Helm Chart version"
-          git push
+          git push --set-upstream origin $branch
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v3.10.1
