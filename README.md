@@ -105,7 +105,14 @@ Usage of ./aws_quota_exporter:
 $ ./aws_quota_exporter -version
 ```
 ```
-aqe version 2.0.1 darwin/arm64
+{
+  App: "AWS Quota Exporter (AQE)",
+  Version: "dev",
+  Date: "Sun Sep  3 17:54:45 UTC 2023",
+  Platform: "darwin/arm64",
+  Commit: "none",
+  GoVersion: "go1.21.13"
+}
 ```
 ## Service Codes
 The `serviceCode` is the AWS service identifier. To identify the `serviceCode` for a particular service, use the following aws cli command:
