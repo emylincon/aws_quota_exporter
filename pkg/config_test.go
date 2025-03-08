@@ -24,11 +24,15 @@ func TestNewQuotaConfig(t *testing.T) {
 				Jobs: []JobConfig{
 					{
 						ServiceCode: "lambda",
-						Regions:     []string{"us-west-1", "us-east-1"},
+						Regions:     []string{"us-west-2", "us-east-2"},
 					},
 					{
 						ServiceCode: "cloudformation",
-						Regions:     []string{"us-west-1", "us-east-1"},
+						Regions:     []string{"us-west-2", "us-east-2"},
+					},
+					{
+						ServiceCode: "ec2",
+						Regions:     []string{"us-west-2", "us-east-2"},
 					},
 				},
 			},
