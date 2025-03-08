@@ -3,6 +3,7 @@ version: '3.8'
 
 services:
   aws_quota_exporter:
+    image: ugwuanyi/aqe:latest
     build:
       context: .
       dockerfile: docker/Dockerfile

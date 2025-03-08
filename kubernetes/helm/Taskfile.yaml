@@ -30,7 +30,13 @@ tasks:
     desc: expose minikube ingress. it is exposed by default in 127.0.0.1
     cmds:
       - minikube tunnel
-  port-forward:
-    desc: port forward to aqe service to port 10100 in localhost
+  port-forward-aqe:
+    desc: port forward to aqe services localhost
     cmds:
-      - kubectl -n default port-forward svc/aqe 10100:10100
+      - kubectl -n default port-forward svc/aqe 10100:10100 &
+      - kubectl -n default port-forward svc/aqe-grafana 3000:80 &
+      - kubectl -n default port-forward svc/aqe-prometheus-server 9090:80 &
+  grafana-secret:
+    desc: get grafana secret
+    cmds:
+      - kubectl get secrets aqe-grafana -o jsonpath="{.data}" | jq -r 'to_entries[] | "\(.key)=\(.value | @base64d)"'
