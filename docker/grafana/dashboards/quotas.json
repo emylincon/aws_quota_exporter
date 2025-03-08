@@ -132,7 +132,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "aws_quota_lambda_concurrent_executions{region=\"us-east-1\"}",
+          "expr": "aws_quota_lambda_concurrent_executions{region=\"us-east-2\"}",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "legendFormat": "{{type}}",
@@ -141,7 +141,7 @@
           "useBackend": false
         }
       ],
-      "title": "Lambda Execution concurrency (US-EAST-1)",
+      "title": "Lambda Execution concurrency (US-EAST-2)",
       "type": "timeseries"
     },
     {
@@ -236,7 +236,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "aws_quota_lambda_concurrent_executions{region=\"us-west-1\"}",
+          "expr": "aws_quota_lambda_concurrent_executions{region=\"us-west-2\"}",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "legendFormat": "{{type}}",
@@ -245,8 +245,132 @@
           "useBackend": false
         }
       ],
-      "title": "Lambda Execution concurrency (US-WEST-1)",
+      "title": "Lambda Execution concurrency (US-WEST-2)",
       "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": []
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "/.*quota$/"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "semi-dark-green",
+                  "mode": "shades"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "/.*usage/"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "yellow",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 24,
+        "x": 0,
+        "y": 8
+      },
+      "id": 12,
+      "maxPerRow": 8,
+      "options": {
+        "displayLabels": [
+          "name",
+          "percent"
+        ],
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "values": [
+            "percent",
+            "value"
+          ]
+        },
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "",
+      "repeat": "region",
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "expr": "aws_quota_ec2_running_on_demand_instances{name=\"Running On-Demand Standard (A, C, D, H, I, M, R, T, Z) instances\", type=\"usage\", region=\"$region\"}",
+          "fullMetaSearch": false,
+          "includeNullMetadata": true,
+          "legendFormat": "{{region}}-{{type}}",
+          "range": true,
+          "refId": "A",
+          "useBackend": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "expr": "aws_quota_ec2_running_on_demand_instances{name=\"Running On-Demand Standard (A, C, D, H, I, M, R, T, Z) instances\", type=\"quota\", region=\"$region\"}",
+          "fullMetaSearch": false,
+          "hide": false,
+          "includeNullMetadata": true,
+          "instant": false,
+          "legendFormat": "{{region}}-{{type}}",
+          "range": true,
+          "refId": "B",
+          "useBackend": false
+        }
+      ],
+      "title": "Running On-Demand Standard (A, C, D, H, I, M, R, T, Z) instances Quota & Usage",
+      "type": "piechart"
     },
     {
       "collapsed": false,
@@ -254,7 +378,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 8
+        "y": 13
       },
       "id": 11,
       "panels": [],
@@ -290,7 +414,7 @@
         "h": 4,
         "w": 12,
         "x": 0,
-        "y": 9
+        "y": 14
       },
       "id": 6,
       "options": {
@@ -334,21 +458,16 @@
       },
       "fieldConfig": {
         "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
           "mappings": [],
           "thresholds": {
-            "mode": "percentage",
+            "mode": "absolute",
             "steps": [
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "orange",
-                "value": 70
-              },
-              {
-                "color": "red",
-                "value": 85
               }
             ]
           }
@@ -359,13 +478,15 @@
         "h": 4,
         "w": 12,
         "x": 12,
-        "y": 9
+        "y": 14
       },
       "id": 4,
       "options": {
-        "minVizHeight": 75,
-        "minVizWidth": 75,
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
         "orientation": "auto",
+        "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -373,9 +494,9 @@
           "fields": "",
           "values": false
         },
-        "showThresholdLabels": false,
-        "showThresholdMarkers": true,
-        "sizing": "auto"
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
       },
       "pluginVersion": "",
       "targets": [
@@ -396,7 +517,7 @@
         }
       ],
       "title": "Cloudformation Stack count",
-      "type": "gauge"
+      "type": "stat"
     },
     {
       "datasource": {
@@ -429,7 +550,7 @@
         "h": 4,
         "w": 24,
         "x": 0,
-        "y": 13
+        "y": 18
       },
       "id": 8,
       "options": {
@@ -478,7 +599,27 @@
   "schemaVersion": 40,
   "tags": [],
   "templating": {
-    "list": []
+    "list": [
+      {
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "definition": "label_values(aws_quota_cloudformation_custom_resource_response_data,region)",
+        "includeAll": true,
+        "name": "region",
+        "options": [],
+        "query": {
+          "qryType": 1,
+          "query": "label_values(aws_quota_cloudformation_custom_resource_response_data,region)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      }
+    ]
   },
   "time": {
     "from": "now-6h",
