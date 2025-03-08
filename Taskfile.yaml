@@ -39,6 +39,10 @@ tasks:
   compose-up:
     desc: "docker compose up"
     cmds:
+      - docker-compose up -d --pull always
+  compose-up-build:
+    desc: "docker compose build up"
+    cmds:
       - docker-compose up -d --build
   compose-down:
     desc: "docker compose down"

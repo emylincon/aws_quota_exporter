@@ -106,7 +106,7 @@ func TestGroupMetrics(t *testing.T) {
 	}
 
 	maxSimilarity := 0.5
-	region := "us-west-1"
+	region := "us-west-2"
 	account := "123456789012"
 
 	grouping := NewGrouping(maxSimilarity, region, account)

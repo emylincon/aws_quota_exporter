@@ -105,7 +105,14 @@ Usage of ./aws_quota_exporter:
 $ ./aws_quota_exporter -version
 ```
 ```
-aqe version 1.0.0 darwin/arm64
+{
+  App: "AWS Quota Exporter (AQE)",
+  Version: "dev",
+  Date: "Sun Sep  3 17:54:45 UTC 2023",
+  Platform: "darwin/arm64",
+  Commit: "none",
+  GoVersion: "go1.21.13"
+}
 ```
 ## Service Codes
 The `serviceCode` is the AWS service identifier. To identify the `serviceCode` for a particular service, use the following aws cli command:
@@ -115,8 +122,8 @@ aws service-quotas list-services
 
 ## Quotas usage
 You can enable quota usage collection with `-collect.usage` flag (ℹ️ Not all quotas have usage. see [docs](https://docs.aws.amazon.com/cognito/latest/developerguide/tracking-quotas-and-usage-in-cloud-watch-and-service-quotas.html)). The latest usage value from CloudWatch using GetMetricStatistics API method is collected. ⚠️  CloudWatch API calls aren't free! However, there are no charges to use GetMetricStatistics for up to 1 million API requests ([docs](https://aws.amazon.com/cloudwatch/pricing/)).
-The label `type="usage|quota` is used to differentiate the metrics. This `"type": "usage"` will export usage metrics while `"type": "quota"` will export quota metrics. 
-Example promQL query to get quota usage ratio: 
+The label `type="usage|quota` is used to differentiate the metrics. This `"type": "usage"` will export usage metrics while `"type": "quota"` will export quota metrics.
+Example promQL query to get quota usage ratio:
 `
 {job="quota-exporter", type="usage"} / {job="quota-exporter", type="quota"}
 `
@@ -226,7 +233,7 @@ The exporter requires the AWS managed policy `ServiceQuotasReadOnlyAccess`. This
 *Please Remove permissions that you would not use*
 
 # Grafana Dashboard
-Visualizing Quotas
+Visualizing Quotas & Usage
 ![Dashboard](img/grafana.png)
 
 # Useful resources

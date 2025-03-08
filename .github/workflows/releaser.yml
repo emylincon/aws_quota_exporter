@@ -138,6 +138,7 @@ jobs:
   goreleaser:
     name: goreleaser
     needs: [prebuild]
+    if: needs.prebuild.outputs.tag_name != null 
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -162,6 +163,7 @@ jobs:
   chartreleaser:
     name: Releaser Helm Chart
     needs: [prebuild, docker, goreleaser]
+    if: needs.prebuild.outputs.tag_name != null
     # depending on default permission settings for your org (contents being read-only or read-write for workloads), you will have to add permissions
     # see: https://docs.github.com/en/actions/security-guides/automatic-token-authentication#modifying-the-permissions-for-the-github_token
     permissions:
@@ -195,10 +197,24 @@ jobs:
           yq -i ".image.tag = \"${tag_name}\"" $configfile
           cat $configfile
 
-      - name: Push Changes to main
-        run: |
-          git commit -am "releaser (pipeline): Update Helm Chart version"
-          git push
+      # - name: Push Changes to main
+      #   run: |
+      #     branch="auto/releaser-pipeline${{ needs.prebuild.outputs.tag_name }}"
+      #     git checkout -b $branch
+      #     git commit -am "releaser (pipeline): Update Helm Chart version"
+      #     git push --set-upstream origin $branch
+
+      # - name: Create Pull Request
+      #   uses: peter-evans/create-pull-request@v3.10.1
+      #   with:
+      #     token: ${{ secrets.GITHUB_TOKEN }}
+      #     commit-message: "releaser (pipeline): Update Helm Chart version ${{ needs.prebuild.outputs.tag_name }}"
+      #     title: "releaser (pipeline): Update Helm Chart version ${{ needs.prebuild.outputs.tag_name }}"
+      #     body: |
+      #       # Description
+      #       Update Helm Chart version ${{ needs.prebuild.outputs.tag_name }}
+      #     branch: auto/releaser-pipeline${{ needs.prebuild.outputs.tag_name }}
+      #     base: main
 
       - name: Install Helm
         uses: azure/setup-helm@v3
@@ -251,4 +267,4 @@ jobs:
           exclude_assets: ".cr-release-packages"
           publish_dir: .
           enable_jekyll: true
-          commit_message: "Tag {{ needs.prebuild.outputs.tag_name }} release update"
+          commit_message: "Tag ${{ needs.prebuild.outputs.tag_name }} release update"

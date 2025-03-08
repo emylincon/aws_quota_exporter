@@ -7,7 +7,7 @@ image:
   repository: ugwuanyi/aqe
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
-  tag: v2.0.1
+  tag: v2.0.2
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
@@ -85,14 +85,21 @@ configmap:
     jobs:
       - serviceCode: lambda
         regions:
-          - us-west-1
-          - us-east-1
+          - us-west-2
+          - us-east-2
       - serviceCode: cloudformation
         regions:
-          - us-west-1
-          - us-east-1
+          - us-west-2
+          - us-east-2
+      - serviceCode: ec2
+        regions:
+          - us-west-2
+          - us-east-2
 env:
-  AWS_REGION: us-west-1
+  AWS_REGION: us-west-2
+podArgs:
+  - --log.level=info
+  - --log.format=text
 secret:
   # base64 encoded secrets (leave empty when using OIDC / kiam / kube2iam etc)
   AWS_ACCESS_KEY_ID: ""
@@ -131,6 +138,8 @@ prometheus:
   alertmanager:
     enabled: false
 grafana:
+  image:
+    tag: 11.5.2
   enabled: true
   datasources:
     datasources.yaml:
@@ -140,7 +149,7 @@ grafana:
           type: prometheus
           # Access mode - proxy (server in the UI) or direct (browser in the UI).
           access: proxy
-          url: http://prometheus.default.svc.cluster.local:9090
+          url: http://aqe-prometheus-server.default.svc.cluster.local:80
           orgId: 1
           editable: true
   dashboardProviders:
