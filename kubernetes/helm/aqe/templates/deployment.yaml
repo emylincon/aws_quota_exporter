@@ -49,6 +49,8 @@ spec:
             - name: {{ include "aqe.fullname" . }}
               mountPath: /etc/aqe/config.yml
               subPath: config.yml
+          args:
+            {{- toYaml .Values.podArgs | nindent 12 }}
           env:
             - name: AWS_REGION
               value: "{{ .Values.env.AWS_REGION }}"

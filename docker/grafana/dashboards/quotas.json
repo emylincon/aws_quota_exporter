@@ -605,13 +605,13 @@
           "text": "All",
           "value": "$__all"
         },
-        "definition": "label_values(aws_quota_cloudformation_custom_resource_response_data,region)",
+        "definition": "label_values(region)",
         "includeAll": true,
         "name": "region",
         "options": [],
         "query": {
           "qryType": 1,
-          "query": "label_values(aws_quota_cloudformation_custom_resource_response_data,region)",
+          "query": "label_values(region)",
           "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
         "refresh": 1,
@@ -627,7 +627,7 @@
   },
   "timepicker": {},
   "timezone": "",
-  "title": "Quotas",
+  "title": "Quotas & Usage",
   "version": 1,
   "weekStart": ""
 }
