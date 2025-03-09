@@ -160,8 +160,8 @@ prometheus:
     enabled: false
 
 grafana:
-  image:
-    tag: 11.5.2
+  # image:
+  #   tag: 11.5.2
   enabled: true
   datasources:
     datasources.yaml:
