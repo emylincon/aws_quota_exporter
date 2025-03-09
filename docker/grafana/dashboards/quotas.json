@@ -369,7 +369,7 @@
           "useBackend": false
         }
       ],
-      "title": "Running On-Demand Standard (A, C, D, H, I, M, R, T, Z) instances Quota & Usage",
+      "title": "EC2 Running On-Demand Standard (A, C, D, H, I, M, R, T, Z) instances Quota & Usage",
       "type": "piechart"
     },
     {

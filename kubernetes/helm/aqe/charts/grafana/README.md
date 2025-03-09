@@ -1,10 +1,10 @@
 # grafana
 
-![Version: 6.58.4](https://img.shields.io/badge/Version-6.58.4-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 10.0.2](https://img.shields.io/badge/AppVersion-10.0.2-informational?style=flat-square)
+![Version: 8.10.1](https://img.shields.io/badge/Version-8.10.1-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 11.5.2](https://img.shields.io/badge/AppVersion-11.5.2-informational?style=flat-square)
 
 The leading tool for querying and visualizing time series and metrics.
 
-**Homepage:** <https://grafana.net>
+**Homepage:** <https://grafana.com>
 
 ## Maintainers
 
@@ -15,6 +15,7 @@ The leading tool for querying and visualizing time series and metrics.
 | maorfr | <maor.friedman@redhat.com> |  |
 | Xtigyro | <miroslav.hadzhiev@gmail.com> |  |
 | torstenwalter | <mail@torstenwalter.de> |  |
+| jkroepke | <github@jkroepke.de> |  |
 
 ## Source Code
 
@@ -36,13 +37,15 @@ Kubernetes: `^1.8.0-0`
 | "grafana.ini".paths.logs | string | `"/var/log/grafana"` |  |
 | "grafana.ini".paths.plugins | string | `"/var/lib/grafana/plugins"` |  |
 | "grafana.ini".paths.provisioning | string | `"/etc/grafana/provisioning"` |  |
-| "grafana.ini".server.domain | string | `"{{ if (and .Values.ingress.enabled .Values.ingress.hosts) }}{{ .Values.ingress.hosts | first }}{{ else }}''{{ end }}"` |  |
+| "grafana.ini".server.domain | string | `"{{ if (and .Values.ingress.enabled .Values.ingress.hosts) }}{{ tpl (.Values.ingress.hosts | first) . }}{{ else }}''{{ end }}"` |  |
 | admin.existingSecret | string | `""` |  |
 | admin.passwordKey | string | `"admin-password"` |  |
 | admin.userKey | string | `"admin-user"` |  |
 | adminUser | string | `"admin"` |  |
 | affinity | object | `{}` |  |
 | alerting | object | `{}` |  |
+| assertNoLeakedSecrets | bool | `true` |  |
+| automountServiceAccountToken | bool | `true` |  |
 | autoscaling.behavior | object | `{}` |  |
 | autoscaling.enabled | bool | `false` |  |
 | autoscaling.maxReplicas | int | `5` |  |
@@ -58,6 +61,8 @@ Kubernetes: `^1.8.0-0`
 | dashboardsConfigMaps | object | `{}` |  |
 | datasources | object | `{}` |  |
 | deploymentStrategy.type | string | `"RollingUpdate"` |  |
+| dnsConfig | object | `{}` |  |
+| dnsPolicy | string | `nil` |  |
 | downloadDashboards.env | object | `{}` |  |
 | downloadDashboards.envFromSecret | string | `""` |  |
 | downloadDashboards.envValueFrom | object | `{}` |  |
@@ -66,9 +71,10 @@ Kubernetes: `^1.8.0-0`
 | downloadDashboards.securityContext.capabilities.drop[0] | string | `"ALL"` |  |
 | downloadDashboards.securityContext.seccompProfile.type | string | `"RuntimeDefault"` |  |
 | downloadDashboardsImage.pullPolicy | string | `"IfNotPresent"` |  |
-| downloadDashboardsImage.repository | string | `"docker.io/curlimages/curl"` |  |
+| downloadDashboardsImage.registry | string | `"docker.io"` | The Docker registry |
+| downloadDashboardsImage.repository | string | `"curlimages/curl"` |  |
 | downloadDashboardsImage.sha | string | `""` |  |
-| downloadDashboardsImage.tag | string | `"7.85.0"` |  |
+| downloadDashboardsImage.tag | string | `"8.9.1"` |  |
 | enableKubeBackwardCompatibility | bool | `false` |  |
 | enableServiceLinks | bool | `true` |  |
 | env | object | `{}` |  |
@@ -87,16 +93,20 @@ Kubernetes: `^1.8.0-0`
 | extraObjects | list | `[]` |  |
 | extraSecretMounts | list | `[]` |  |
 | extraVolumeMounts | list | `[]` |  |
+| extraVolumes | list | `[]` |  |
 | global.imagePullSecrets | list | `[]` |  |
+| global.imageRegistry | string | `nil` | Overrides the Docker registry globally for all images |
 | gossipPortName | string | `"gossip"` |  |
 | headlessService | bool | `false` |  |
 | hostAliases | list | `[]` |  |
 | image.pullPolicy | string | `"IfNotPresent"` |  |
 | image.pullSecrets | list | `[]` |  |
-| image.repository | string | `"docker.io/grafana/grafana"` |  |
+| image.registry | string | `"docker.io"` | The Docker registry |
+| image.repository | string | `"grafana/grafana"` | Docker image repository |
 | image.sha | string | `""` |  |
 | image.tag | string | `""` |  |
 | imageRenderer.affinity | object | `{}` |  |
+| imageRenderer.automountServiceAccountToken | bool | `false` |  |
 | imageRenderer.autoscaling.behavior | object | `{}` |  |
 | imageRenderer.autoscaling.enabled | bool | `false` |  |
 | imageRenderer.autoscaling.maxReplicas | int | `5` |  |
@@ -110,24 +120,34 @@ Kubernetes: `^1.8.0-0`
 | imageRenderer.deploymentStrategy | object | `{}` |  |
 | imageRenderer.enabled | bool | `false` |  |
 | imageRenderer.env.HTTP_HOST | string | `"0.0.0.0"` |  |
+| imageRenderer.env.XDG_CACHE_HOME | string | `"/tmp/.chromium"` |  |
+| imageRenderer.env.XDG_CONFIG_HOME | string | `"/tmp/.chromium"` |  |
 | imageRenderer.envValueFrom | object | `{}` |  |
+| imageRenderer.extraConfigmapMounts | list | `[]` |  |
+| imageRenderer.extraSecretMounts | list | `[]` |  |
+| imageRenderer.extraVolumeMounts | list | `[]` |  |
+| imageRenderer.extraVolumes | list | `[]` |  |
 | imageRenderer.grafanaProtocol | string | `"http"` |  |
 | imageRenderer.grafanaSubPath | string | `""` |  |
 | imageRenderer.hostAliases | list | `[]` |  |
 | imageRenderer.image.pullPolicy | string | `"Always"` |  |
-| imageRenderer.image.repository | string | `"docker.io/grafana/grafana-image-renderer"` |  |
+| imageRenderer.image.registry | string | `"docker.io"` | The Docker registry |
+| imageRenderer.image.repository | string | `"grafana/grafana-image-renderer"` |  |
 | imageRenderer.image.sha | string | `""` |  |
 | imageRenderer.image.tag | string | `"latest"` |  |
 | imageRenderer.networkPolicy.extraIngressSelectors | list | `[]` |  |
 | imageRenderer.networkPolicy.limitEgress | bool | `false` |  |
 | imageRenderer.networkPolicy.limitIngress | bool | `true` |  |
 | imageRenderer.nodeSelector | object | `{}` |  |
+| imageRenderer.podAnnotations | object | `{}` |  |
 | imageRenderer.podPortName | string | `"http"` |  |
 | imageRenderer.priorityClassName | string | `""` |  |
+| imageRenderer.renderingCallbackURL | string | `""` |  |
 | imageRenderer.replicas | int | `1` |  |
 | imageRenderer.resources | object | `{}` |  |
 | imageRenderer.revisionHistoryLimit | int | `10` |  |
 | imageRenderer.securityContext | object | `{}` |  |
+| imageRenderer.serverURL | string | `""` |  |
 | imageRenderer.service.appProtocol | string | `""` |  |
 | imageRenderer.service.enabled | bool | `true` |  |
 | imageRenderer.service.port | int | `8081` |  |
@@ -154,7 +174,8 @@ Kubernetes: `^1.8.0-0`
 | ingress.tls | list | `[]` |  |
 | initChownData.enabled | bool | `true` |  |
 | initChownData.image.pullPolicy | string | `"IfNotPresent"` |  |
-| initChownData.image.repository | string | `"docker.io/library/busybox"` |  |
+| initChownData.image.registry | string | `"docker.io"` | The Docker registry |
+| initChownData.image.repository | string | `"library/busybox"` |  |
 | initChownData.image.sha | string | `""` |  |
 | initChownData.image.tag | string | `"1.31.1"` |  |
 | initChownData.resources | object | `{}` |  |
@@ -173,18 +194,22 @@ Kubernetes: `^1.8.0-0`
 | livenessProbe.timeoutSeconds | int | `30` |  |
 | namespaceOverride | string | `""` |  |
 | networkPolicy.allowExternal | bool | `true` |  |
+| networkPolicy.egress.blockDNSResolution | bool | `false` |  |
 | networkPolicy.egress.enabled | bool | `false` |  |
 | networkPolicy.egress.ports | list | `[]` |  |
+| networkPolicy.egress.to | list | `[]` |  |
 | networkPolicy.enabled | bool | `false` |  |
 | networkPolicy.explicitNamespacesSelector | object | `{}` |  |
 | networkPolicy.ingress | bool | `true` |  |
 | nodeSelector | object | `{}` |  |
 | notifiers | object | `{}` |  |
 | persistence.accessModes[0] | string | `"ReadWriteOnce"` |  |
+| persistence.disableWarning | bool | `false` |  |
 | persistence.enabled | bool | `false` |  |
 | persistence.extraPvcLabels | object | `{}` |  |
 | persistence.finalizers[0] | string | `"kubernetes.io/pvc-protection"` |  |
 | persistence.inMemory.enabled | bool | `false` |  |
+| persistence.lookupVolumeName | bool | `true` |  |
 | persistence.size | string | `"10Gi"` |  |
 | persistence.type | string | `"pvc"` |  |
 | plugins | list | `[]` |  |
@@ -201,6 +226,10 @@ Kubernetes: `^1.8.0-0`
 | replicas | int | `1` |  |
 | resources | object | `{}` |  |
 | revisionHistoryLimit | int | `10` |  |
+| route | object | `{"main":{"additionalRules":[],"annotations":{},"apiVersion":"gateway.networking.k8s.io/v1","enabled":false,"filters":[],"hostnames":[],"kind":"HTTPRoute","labels":{},"matches":[{"path":{"type":"PathPrefix","value":"/"}}],"parentRefs":[]}}` | BETA: Configure the gateway routes for the chart here. More routes can be added by adding a dictionary key like the 'main' route. Be aware that this is an early beta of this feature, kube-prometheus-stack does not guarantee this works and is subject to change. Being BETA this can/will change in the future without notice, do not use unless you want to take that risk [[ref]](https://gateway-api.sigs.k8s.io/references/spec/#gateway.networking.k8s.io%2fv1alpha2) |
+| route.main.apiVersion | string | `"gateway.networking.k8s.io/v1"` | Set the route apiVersion, e.g. gateway.networking.k8s.io/v1 or gateway.networking.k8s.io/v1alpha2 |
+| route.main.enabled | bool | `false` | Enables or disables the route |
+| route.main.kind | string | `"HTTPRoute"` | Set the route kind Valid options are GRPCRoute, HTTPRoute, TCPRoute, TLSRoute, UDPRoute |
 | securityContext.fsGroup | int | `472` |  |
 | securityContext.runAsGroup | int | `472` |  |
 | securityContext.runAsNonRoot | bool | `true` |  |
@@ -208,28 +237,38 @@ Kubernetes: `^1.8.0-0`
 | service.annotations | object | `{}` |  |
 | service.appProtocol | string | `""` |  |
 | service.enabled | bool | `true` |  |
+| service.ipFamilies | list | `[]` |  |
+| service.ipFamilyPolicy | string | `""` |  |
 | service.labels | object | `{}` |  |
+| service.loadBalancerClass | string | `""` |  |
+| service.loadBalancerIP | string | `""` |  |
+| service.loadBalancerSourceRanges | list | `[]` |  |
 | service.port | int | `80` |  |
 | service.portName | string | `"service"` |  |
+| service.sessionAffinity | string | `""` |  |
 | service.targetPort | int | `3000` |  |
 | service.type | string | `"ClusterIP"` |  |
-| serviceAccount.autoMount | bool | `true` |  |
+| serviceAccount.automountServiceAccountToken | bool | `false` |  |
 | serviceAccount.create | bool | `true` |  |
 | serviceAccount.labels | object | `{}` |  |
 | serviceAccount.name | string | `nil` |  |
 | serviceAccount.nameTest | string | `nil` |  |
+| serviceMonitor.basicAuth | object | `{}` |  |
 | serviceMonitor.enabled | bool | `false` |  |
-| serviceMonitor.interval | string | `"1m"` |  |
+| serviceMonitor.interval | string | `"30s"` |  |
 | serviceMonitor.labels | object | `{}` |  |
+| serviceMonitor.metricRelabelings | list | `[]` |  |
 | serviceMonitor.path | string | `"/metrics"` |  |
 | serviceMonitor.relabelings | list | `[]` |  |
 | serviceMonitor.scheme | string | `"http"` |  |
 | serviceMonitor.scrapeTimeout | string | `"30s"` |  |
 | serviceMonitor.targetLabels | list | `[]` |  |
 | serviceMonitor.tlsConfig | object | `{}` |  |
+| shareProcessNamespace | bool | `false` |  |
 | sidecar.alerts.enabled | bool | `false` |  |
 | sidecar.alerts.env | object | `{}` |  |
 | sidecar.alerts.extraMounts | list | `[]` |  |
+| sidecar.alerts.initAlerts | bool | `false` |  |
 | sidecar.alerts.label | string | `"grafana_alert"` |  |
 | sidecar.alerts.labelValue | string | `""` |  |
 | sidecar.alerts.reloadURL | string | `"http://localhost:3000/api/admin/provisioning/alerting/reload"` |  |
@@ -243,6 +282,7 @@ Kubernetes: `^1.8.0-0`
 | sidecar.dashboards.defaultFolderName | string | `nil` |  |
 | sidecar.dashboards.enabled | bool | `false` |  |
 | sidecar.dashboards.env | object | `{}` |  |
+| sidecar.dashboards.envValueFrom | object | `{}` |  |
 | sidecar.dashboards.extraMounts | list | `[]` |  |
 | sidecar.dashboards.folder | string | `"/tmp/dashboards"` |  |
 | sidecar.dashboards.folderAnnotation | string | `nil` |  |
@@ -251,6 +291,7 @@ Kubernetes: `^1.8.0-0`
 | sidecar.dashboards.provider.allowUiUpdates | bool | `false` |  |
 | sidecar.dashboards.provider.disableDelete | bool | `false` |  |
 | sidecar.dashboards.provider.folder | string | `""` |  |
+| sidecar.dashboards.provider.folderUid | string | `""` |  |
 | sidecar.dashboards.provider.foldersFromFilesStructure | bool | `false` |  |
 | sidecar.dashboards.provider.name | string | `"sidecarProvider"` |  |
 | sidecar.dashboards.provider.orgid | int | `1` |  |
@@ -264,6 +305,8 @@ Kubernetes: `^1.8.0-0`
 | sidecar.dashboards.watchMethod | string | `"WATCH"` |  |
 | sidecar.datasources.enabled | bool | `false` |  |
 | sidecar.datasources.env | object | `{}` |  |
+| sidecar.datasources.envValueFrom | object | `{}` |  |
+| sidecar.datasources.extraMounts | list | `[]` |  |
 | sidecar.datasources.initDatasources | bool | `false` |  |
 | sidecar.datasources.label | string | `"grafana_datasource"` |  |
 | sidecar.datasources.labelValue | string | `""` |  |
@@ -275,13 +318,15 @@ Kubernetes: `^1.8.0-0`
 | sidecar.datasources.skipReload | bool | `false` |  |
 | sidecar.datasources.watchMethod | string | `"WATCH"` |  |
 | sidecar.enableUniqueFilenames | bool | `false` |  |
-| sidecar.image.repository | string | `"quay.io/kiwigrid/k8s-sidecar"` |  |
+| sidecar.image.registry | string | `"quay.io"` | The Docker registry |
+| sidecar.image.repository | string | `"kiwigrid/k8s-sidecar"` |  |
 | sidecar.image.sha | string | `""` |  |
-| sidecar.image.tag | string | `"1.24.6"` |  |
+| sidecar.image.tag | string | `"1.30.0"` |  |
 | sidecar.imagePullPolicy | string | `"IfNotPresent"` |  |
 | sidecar.livenessProbe | object | `{}` |  |
 | sidecar.notifiers.enabled | bool | `false` |  |
 | sidecar.notifiers.env | object | `{}` |  |
+| sidecar.notifiers.extraMounts | list | `[]` |  |
 | sidecar.notifiers.initNotifiers | bool | `false` |  |
 | sidecar.notifiers.label | string | `"grafana_notifier"` |  |
 | sidecar.notifiers.labelValue | string | `""` |  |
@@ -294,6 +339,7 @@ Kubernetes: `^1.8.0-0`
 | sidecar.notifiers.watchMethod | string | `"WATCH"` |  |
 | sidecar.plugins.enabled | bool | `false` |  |
 | sidecar.plugins.env | object | `{}` |  |
+| sidecar.plugins.extraMounts | list | `[]` |  |
 | sidecar.plugins.initPlugins | bool | `false` |  |
 | sidecar.plugins.label | string | `"grafana_plugin"` |  |
 | sidecar.plugins.labelValue | string | `""` |  |
@@ -313,10 +359,12 @@ Kubernetes: `^1.8.0-0`
 | smtp.passwordKey | string | `"password"` |  |
 | smtp.userKey | string | `"user"` |  |
 | testFramework.enabled | bool | `true` |  |
-| testFramework.image | string | `"docker.io/bats/bats"` |  |
+| testFramework.image.registry | string | `"docker.io"` | The Docker registry |
+| testFramework.image.repository | string | `"bats/bats"` |  |
+| testFramework.image.tag | string | `"v1.4.1"` |  |
 | testFramework.imagePullPolicy | string | `"IfNotPresent"` |  |
+| testFramework.resources | object | `{}` |  |
 | testFramework.securityContext | object | `{}` |  |
-| testFramework.tag | string | `"v1.4.1"` |  |
 | tolerations | list | `[]` |  |
 | topologySpreadConstraints | list | `[]` |  |
 | useStatefulSet | bool | `false` |  |
