@@ -7,7 +7,7 @@ image:
   repository: ugwuanyi/aqe
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
-  tag: v2.0.2
+  tag: v2.0.3
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
@@ -138,8 +138,6 @@ prometheus:
   alertmanager:
     enabled: false
 grafana:
-  image:
-    tag: 11.5.2
   enabled: true
   datasources:
     datasources.yaml:

@@ -1,6 +1,6 @@
 # aqe
 
-![Version: 0.1.0](https://img.shields.io/badge/Version-0.1.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.1.3](https://img.shields.io/badge/AppVersion-0.1.3-informational?style=flat-square)
+![Version: 2.0.2](https://img.shields.io/badge/Version-2.0.2-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 2.0.2](https://img.shields.io/badge/AppVersion-2.0.2-informational?style=flat-square)
 
 A Helm chart for aws quota exporter
 
@@ -8,8 +8,8 @@ A Helm chart for aws quota exporter
 
 | Repository | Name | Version |
 |------------|------|---------|
-| file://charts/grafana | grafana | 6.58.4 |
-| https://prometheus-community.github.io/helm-charts | prometheus | 23.1.0 |
+| file://charts/grafana | grafana | 8.10.1 |
+| https://prometheus-community.github.io/helm-charts | prometheus | 27.5.1 |
 
 ## Values
 
@@ -46,7 +46,6 @@ A Helm chart for aws quota exporter
 | grafana.datasources."datasources.yaml".datasources[0].type | string | `"prometheus"` |  |
 | grafana.datasources."datasources.yaml".datasources[0].url | string | `"http://aqe-prometheus-server.default.svc.cluster.local:80"` |  |
 | grafana.enabled | bool | `true` |  |
-| grafana.image.tag | string | `"11.5.2"` |  |
 | image.pullPolicy | string | `"IfNotPresent"` |  |
 | image.repository | string | `"ugwuanyi/aqe"` |  |
 | image.tag | string | `"latest"` |  |
