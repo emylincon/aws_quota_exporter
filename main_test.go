@@ -25,3 +25,29 @@ func TestHealthzHandler(t *testing.T) {
 		t.Errorf("expected 'ok' got %v", string(data))
 	}
 }
+func TestBuildInfoMetrics(t *testing.T) {
+	metrics, err := buildInfoMetrics()
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if len(metrics) != 1 {
+		t.Fatalf("expected 1 metric, got %d", len(metrics))
+	}
+
+	metric := metrics[0]
+	if metric.Name != "aqe_build_info" {
+		t.Errorf("expected metric name 'aqe_build_info', got %s", metric.Name)
+	}
+
+	if metric.Value != 1 {
+		t.Errorf("expected metric value 1, got %v", metric.Value)
+	}
+
+	expectedLabels := []string{"app", "version", "build_date", "platform", "commit", "go_version"}
+	for _, label := range expectedLabels {
+		if _, exists := metric.Labels[label]; !exists {
+			t.Errorf("expected label '%s' to exist in metric labels", label)
+		}
+	}
+}
