@@ -1,3 +1,15 @@
+// Package main implements the AWS Quota Exporter (AQE), a tool for exporting AWS service quotas
+// as Prometheus metrics. The application provides functionality to scrape AWS service quota
+// information, expose it as Prometheus metrics, and serve it over HTTP.
+//
+// The main package includes the following features:
+// - Command-line flags for configuration, including log settings, Prometheus port, and cache duration.
+// - Graceful shutdown handling using OS signals.
+// - Build information exposure as Prometheus metrics and version display.
+// - Integration with Prometheus for metrics collection and HTTP serving.
+//
+// The application is designed to be extensible and configurable, allowing users to customize
+// logging, caching, and metric collection behavior.
 package main
 
 import (
@@ -24,6 +36,15 @@ var (
 	date    = "2023-09-03T17:54:45Z"
 )
 
+type buildInfo struct {
+	App       string
+	Version   string
+	Date      string
+	Platform  string
+	Commit    string
+	GoVersion string
+}
+
 func closeHandler() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
@@ -36,19 +57,17 @@ func closeHandler() {
 	}()
 }
 
-func printVersion() {
+// getbuildInfo constructs and returns a buildInfo struct containing metadata
+// about the application build, such as the application name, version, build date,
+// platform, commit hash, and Go runtime version. The build date is parsed and
+// reformatted to a human-readable format if it adheres to the RFC3339 standard.
+// If the date parsing fails, the original date string is used.
+func getbuildInfo() buildInfo {
 	dt, err := time.Parse(time.RFC3339, date)
 	if err == nil {
 		date = dt.Format(time.UnixDate)
 	}
-	appversion := struct {
-		App       string
-		Version   string
-		Date      string
-		Platform  string
-		Commit    string
-		GoVersion string
-	}{
+	return buildInfo{
 		App:       "AWS Quota Exporter (AQE)",
 		Version:   version,
 		Date:      date,
@@ -56,7 +75,42 @@ func printVersion() {
 		Commit:    commit,
 		GoVersion: runtime.Version(),
 	}
+}
+
+func printVersion() {
+	appversion := getbuildInfo()
 	fmt.Println(awsutil.Prettify(appversion))
+}
+
+// buildInfoMetrics generates a slice of Prometheus metrics containing build information
+// about the application. It retrieves build details such as the application name, version,
+// build date, platform, commit hash, and Go version, and packages them into a Prometheus
+// metric with the name "aqe_build_info".
+//
+// Returns:
+//   - A slice of pointers to PrometheusMetric containing the build information.
+//   - An error if any issue occurs during the metric creation process.
+func buildInfoMetrics() ([]*pkg.PrometheusMetric, error) {
+	appversion := getbuildInfo()
+	var metrics []*pkg.PrometheusMetric
+
+	labels := map[string]string{
+		"app":        appversion.App,
+		"version":    appversion.Version,
+		"build_date": appversion.Date,
+		"platform":   appversion.Platform,
+		"commit":     appversion.Commit,
+		"go_version": appversion.GoVersion,
+	}
+
+	metrics = append(metrics, &pkg.PrometheusMetric{
+		Name:   "aqe_build_info",
+		Labels: labels,
+		Value:  1,
+		Desc:   "AQE Build information",
+	})
+
+	return metrics, nil
 }
 
 func main() {
@@ -107,6 +161,8 @@ func main() {
 			slog.Error("Failed to register metrics: "+err.Error(), "serviceCode", job.ServiceCode, "regions", job.Regions, "role", job.Role)
 		}
 	}
+
+	reg.Register(pkg.NewPrometheusCollector(buildInfoMetrics))
 
 	mux := http.NewServeMux()
 	promHandler := promhttp.HandlerFor(reg, promhttp.HandlerOpts{})
