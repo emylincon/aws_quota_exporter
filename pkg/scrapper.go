@@ -231,6 +231,7 @@ func createPromMetric(m MetricGroup, metricType, region, account string) *Promet
 			"account":      account,
 			"name":         *m.Quota.QuotaName,
 			"quota_code":   *m.Quota.QuotaCode,
+			"service_code": *m.Quota.ServiceCode,
 		},
 		Desc: createDescription(*m.Quota.ServiceName, *m.Quota.QuotaName),
 	}
