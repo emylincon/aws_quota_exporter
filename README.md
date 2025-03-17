@@ -65,11 +65,13 @@ go run . --prom.port=10100 --config.file=config.yml
 ```yaml
 jobs:
   - serviceCode: lambda
+    accountName: dev-account # optional
     regions:
       - us-west-1
       - us-east-1
     role: arn:aws:iam::ACCOUNT-ID:role/rolename # optional
   - serviceCode: cloudformation
+    accountName: prod-account # optional
     regions:
       - us-west-1
       - us-east-1

@@ -1,24 +1,29 @@
 jobs:
   - serviceCode: lambda
+    accountName: dev-account
     regions:
       - us-west-1
       - us-east-1
   - serviceCode: cloudtrail
+    accountName: dev-account
     regions:
       - eu-central-1
   - serviceCode: ebs
+    accountName: dev-account
     regions:
       - eu-central-1
-
   - serviceCode: cloudformation
+    accountName: dev-account
     regions:
       - us-west-1
       - us-east-1
   - serviceCode: rds
+    accountName: dev-account
     regions:
       - us-west-1
       - us-east-1
   - serviceCode: ec2
+    accountName: dev-account
     regions:
       - us-west-1
       - us-east-1

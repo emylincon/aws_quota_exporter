@@ -26,6 +26,7 @@ func TestGroupMetrics(t *testing.T) {
 					ServiceCode: Ptr("ec2"),
 					ServiceName: Ptr("Amazon Elastic Compute Cloud"),
 					QuotaName:   Ptr("Test Quota 1"),
+					QuotaCode:   Ptr("L-12345"),
 					Value:       Ptr(100.0),
 					Adjustable:  true,
 					GlobalQuota: false,
@@ -38,6 +39,7 @@ func TestGroupMetrics(t *testing.T) {
 					ServiceCode: Ptr("ec2"),
 					ServiceName: Ptr("Amazon Elastic Compute Cloud"),
 					QuotaName:   Ptr("Test Quota 2"),
+					QuotaCode:   Ptr("L-12346"),
 					Value:       Ptr(100.0),
 					Adjustable:  true,
 					GlobalQuota: false,
@@ -50,6 +52,7 @@ func TestGroupMetrics(t *testing.T) {
 					ServiceCode: Ptr("ec2"),
 					ServiceName: Ptr("Amazon Elastic Compute Cloud"),
 					QuotaName:   Ptr("Test Quota 3"),
+					QuotaCode:   Ptr("L-12347"),
 					Value:       Ptr(100.0),
 					Adjustable:  true,
 					GlobalQuota: false,
@@ -69,6 +72,7 @@ func TestGroupMetrics(t *testing.T) {
 					ServiceCode: Ptr("ec2"),
 					ServiceName: Ptr("Amazon Elastic Compute Cloud"),
 					QuotaName:   Ptr("All DL Spot Instance Requests"),
+					QuotaCode:   Ptr("L-12345"),
 					Value:       Ptr(100.0),
 					Adjustable:  true,
 					GlobalQuota: false,
@@ -81,6 +85,7 @@ func TestGroupMetrics(t *testing.T) {
 					ServiceCode: Ptr("ec2"),
 					ServiceName: Ptr("Amazon Elastic Compute Cloud"),
 					QuotaName:   Ptr("All F Spot Instance Requests"),
+					QuotaCode:   Ptr("L-12346"),
 					Value:       Ptr(100.0),
 					Adjustable:  true,
 					GlobalQuota: false,
@@ -93,6 +98,7 @@ func TestGroupMetrics(t *testing.T) {
 					ServiceCode: Ptr("ec2"),
 					ServiceName: Ptr("Amazon Elastic Compute Cloud"),
 					QuotaName:   Ptr("All Standard (A, C, D, H, I, M, R, T, Z) Spot Instance Requests"),
+					QuotaCode:   Ptr("L-12347"),
 					Value:       Ptr(100.0),
 					Adjustable:  true,
 					GlobalQuota: false,
@@ -106,10 +112,13 @@ func TestGroupMetrics(t *testing.T) {
 	}
 
 	maxSimilarity := 0.5
-	region := "us-west-2"
-	account := "123456789012"
+	jobRegionCfg := JobRegion{
+		Region:      "us-west-2",
+		AccountName: "dev-account",
+		AccountID:   "123456789012",
+	}
 
-	grouping := NewGrouping(maxSimilarity, region, account)
+	grouping := NewGrouping(maxSimilarity, jobRegionCfg)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
