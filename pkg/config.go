@@ -17,6 +17,7 @@ type JobConfig struct {
 	ServiceCode string   `yaml:"serviceCode"`
 	Regions     []string `yaml:"regions"`
 	Role        string   `yaml:"role,omitempty"`
+	AccountName string   `yaml:"accountName,omitempty"`
 }
 
 // NewQuotaConfig creates a new QuotaConfig
