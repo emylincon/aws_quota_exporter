@@ -26,15 +26,17 @@ type Grouping struct {
 	maxSimilarity float64        // Maximum similarity score.
 	region        string         // AWS region.
 	account       string         // AWS account.
+	accountName   string         // AWS account name.
 	repl          *regexp.Regexp // Regular expression for replacing patterns.
 }
 
 // NewGrouping initializes a new grouping instance.
-func NewGrouping(maxSimilarity float64, region, account string) *Grouping {
+func NewGrouping(maxSimilarity float64, jobRegionCfg JobRegion) *Grouping {
 	return &Grouping{
 		maxSimilarity: maxSimilarity,
-		region:        region,
-		account:       account,
+		region:        jobRegionCfg.Region,
+		account:       jobRegionCfg.AccountID,
+		accountName:   jobRegionCfg.AccountName,
 		repl:          regexp.MustCompile(` \(.*\)`),
 	}
 }
@@ -70,23 +72,26 @@ func (g *Grouping) common(a, b string) string {
 }
 
 // createPromMetric creates a Prometheus metric based on the given metric group and type.
-func (g *Grouping) createPromMetric(m MetricGroup, metric_type string) *PrometheusMetric {
+func (g *Grouping) createPromMetric(m MetricGroup, metricType string) *PrometheusMetric {
 	value := *m.Quota.Value
-	if metric_type == "usage" {
+	if metricType == "usage" {
 		value = m.Usage
 	}
 	return &PrometheusMetric{
 		Name:  createMetricName(*m.Quota.ServiceCode, m.Common),
 		Value: value,
 		Labels: map[string]string{
-			"type":         metric_type,
+			"type":         metricType,
 			"adjustable":   strconv.FormatBool(m.Quota.Adjustable),
 			"global_quota": strconv.FormatBool(m.Quota.GlobalQuota),
 			"unit":         *m.Quota.Unit,
 			"region":       g.region,
 			"account":      g.account,
+			"account_name": g.accountName,
 			"kind":         m.Label,
 			"name":         *m.Quota.QuotaName,
+			"quota_code":   *m.Quota.QuotaCode,
+			"service_code": *m.Quota.ServiceCode,
 		},
 		Desc: createDescription(*m.Quota.ServiceName, m.Common),
 	}
