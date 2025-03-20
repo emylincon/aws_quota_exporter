@@ -14,7 +14,7 @@ tasks:
   start:
     desc: "start application in dev mode"
     cmds:
-      - export AWS_PROFILE=emeka;go run . --prom.port=10100 --config.file=example/config.yml --log.level=debug --log.format=text --cache.duration=1m --collect.usage
+      - export AWS_PROFILE=emeka;go run . --prom.port=10100 --config.file=example/config.yml --log.level=debug --log.format=text --cache.duration=1m --collect.usage --cache.serve-stale
     silent: true
   retest:
     desc: "go release build test"
