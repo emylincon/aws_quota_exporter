@@ -86,8 +86,10 @@ $ ./aws_quota_exporter -h
 Usage of ./aws_quota_exporter:
   -cache.duration duration
         Cache expiry time. (default 5m0s)
+  -cache.serve-stale
+        Serve stale cache data during cache refresh. This avoids delays in serving metrics. (default: false)
   -collect.usage
-        Collect quotas usage where available (NOTE: CloudWatch calls aren't free)
+        Collect quotas usage where available (NOTE: CloudWatch calls aren't free, default: false)
   -config.file string
         Path to configuration file. (default "/etc/aqe/config.yml")
   -log.folder string

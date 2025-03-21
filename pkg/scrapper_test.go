@@ -66,6 +66,7 @@ func TestScraper_CreateScraper(t *testing.T) {
 		job                 JobConfig
 		cacheExpiryDuration time.Duration
 		collectUsage        bool
+		serveStale          bool
 	}
 	cfg, _ := config.LoadDefaultConfig(context.TODO())
 	failedServiceQuota := errors.New("operation error Service Quotas: ListServiceQuotas, failed to sign request: failed to retrieve credentials: failed to refresh cached credentials, no EC2 IMDS role found, operation error ec2imds: GetMetadata, request canceled, context deadline exceeded")
@@ -97,7 +98,7 @@ func TestScraper_CreateScraper(t *testing.T) {
 				cfg: tt.fields.cfg,
 			}
 
-			got := s.CreateScraper(tt.args.job, &tt.args.cacheExpiryDuration, tt.args.collectUsage)
+			got := s.CreateScraper(tt.args.job, &tt.args.cacheExpiryDuration, tt.args.serveStale, tt.args.collectUsage)
 			d, derr := got()
 			r, terr := tt.want()
 			if (derr != nil) != tt.wantErr {
