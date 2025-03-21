@@ -9,10 +9,11 @@ import (
 
 // Cache struct to manage the cache
 type Cache struct {
-	FileName string
-	LifeTime time.Duration
-	Expires  time.Time
-	isEmpty  bool
+	FileName   string
+	LifeTime   time.Duration
+	Expires    time.Time
+	isEmpty    bool
+	ServeStale bool
 }
 
 var (
@@ -52,15 +53,18 @@ func (c *Cache) Read() ([]*PrometheusMetric, error) {
 	if c.isEmpty {
 		return nil, ErrCacheEmpty
 	}
-	if time.Now().After(c.Expires) {
-		return nil, ErrCacheExpired
-	}
 	byteData, err := os.ReadFile(c.FileName)
 	if err != nil {
 		return nil, err
 	}
 	var metrics []*PrometheusMetric
 	err = json.Unmarshal(byteData, &metrics)
+	if err != nil {
+		return nil, err
+	}
+	if time.Now().After(c.Expires) {
+		return metrics, ErrCacheExpired
+	}
 
 	return metrics, err
 }
@@ -74,6 +78,7 @@ func (c *Cache) Write(data []*PrometheusMetric) error {
 	err = os.WriteFile(c.FileName, jsonData, 0644)
 	if err == nil {
 		c.isEmpty = false
+		c.ServeStale = false
 		c.Expires = time.Now().Add(c.LifeTime)
 	}
 	return err

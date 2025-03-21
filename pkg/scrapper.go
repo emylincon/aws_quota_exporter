@@ -70,7 +70,7 @@ func NewScraper() (*Scraper, error) {
 }
 
 // CreateScraper Scrape Quotas from AWS
-func (s *Scraper) CreateScraper(job JobConfig, cacheDuration *time.Duration, collectUsage bool) func() ([]*PrometheusMetric, error) {
+func (s *Scraper) CreateScraper(job JobConfig, cacheDuration *time.Duration, cacheServeStale bool, collectUsage bool) func() ([]*PrometheusMetric, error) {
 
 	cfg := s.getAWSConfig(job.Role)
 	AccountID := getAWSAccountID(cfg)
@@ -93,58 +93,75 @@ func (s *Scraper) CreateScraper(job JobConfig, cacheDuration *time.Duration, col
 					"duration", time.Since(start),
 				)
 				return cacheData, nil
-			} else if (err == ErrCacheExpired) || (err == ErrCacheEmpty) {
+			} else if err == ErrCacheEmpty {
 				l.Info("Cache Read", "msg", err)
+			} else if err == ErrCacheExpired {
+				l.Info("Cache Expired", "msg", err)
+				if cacheServeStale {
+					l.Info("Serving stale cache data")
+
+					if !cacheStore.ServeStale {
+						go s.scrapeServiceMetrics(l, job, AccountID, collectUsage, cacheStore)
+						cacheStore.ServeStale = true
+					}
+					return cacheData, nil
+				}
+
 			} else {
 				l.Info("Cache Read Error", "error", err)
 			}
 		}
 
-		l.Info("Scrapping metrics")
-
-		ctx := context.Background()
-		cfg := s.getAWSConfig(job.Role) // get credentials incase it expires
-		sqclient := sq.NewFromConfig(cfg)
-		cwclient := cw.NewFromConfig(cfg)
-		input := sq.ListServiceQuotasInput{ServiceCode: &job.ServiceCode, MaxResults: &maxResults}
-		metricList := []*PrometheusMetric{}
-		c := make(chan chanData)
-		// create goroutine workers
-		for _, region := range job.Regions {
-			jobRegionCfg := JobRegion{
-				Region:      region,
-				AccountName: job.AccountName,
-				AccountID:   AccountID,
-			}
-			go getServiceQuotas(ctx, collectUsage, jobRegionCfg, &input, sqclient, cwclient, c)
-		}
-		// retrieve channel results from goroutines
-		for i := 0; i < len(job.Regions); i++ {
-			data := <-c
-			if data.err != nil {
-				l.ErrorCtx(ctx, "Failed to get service quotas",
-					"error", data.err,
-				)
-				return nil, data.err
-			}
-
-			metricList = append(metricList, data.metrics...)
-		}
-
-		if cacheStore != nil {
-			err = cacheStore.Write(metricList)
-			if err != nil {
-				l.Debug("Cache Write error", "error", err)
-			}
-		}
-
-		l.Info("Metrics Scrapped",
-			"duration", time.Since(start),
-		)
-		return metricList, nil
+		return s.scrapeServiceMetrics(l, job, AccountID, collectUsage, cacheStore)
 
 	}
 
+}
+
+func (s *Scraper) scrapeServiceMetrics(l *slog.Logger, job JobConfig, AccountID string, collectUsage bool, cacheStore *Cache) ([]*PrometheusMetric, error) {
+	start := time.Now()
+	l.Info("Scrapping metrics")
+
+	ctx := context.Background()
+	cfg := s.getAWSConfig(job.Role) // get credentials incase it expires
+	sqclient := sq.NewFromConfig(cfg)
+	cwclient := cw.NewFromConfig(cfg)
+	input := sq.ListServiceQuotasInput{ServiceCode: &job.ServiceCode, MaxResults: &maxResults}
+	metricList := []*PrometheusMetric{}
+	c := make(chan chanData)
+	// create goroutine workers
+	for _, region := range job.Regions {
+		jobRegionCfg := JobRegion{
+			Region:      region,
+			AccountName: job.AccountName,
+			AccountID:   AccountID,
+		}
+		go getServiceQuotas(ctx, collectUsage, jobRegionCfg, &input, sqclient, cwclient, c)
+	}
+	// retrieve channel results from goroutines
+	for i := 0; i < len(job.Regions); i++ {
+		data := <-c
+		if data.err != nil {
+			l.ErrorCtx(ctx, "Failed to get service quotas",
+				"error", data.err,
+			)
+			return nil, data.err
+		}
+
+		metricList = append(metricList, data.metrics...)
+	}
+
+	if cacheStore != nil {
+		err := cacheStore.Write(metricList)
+		if err != nil {
+			l.Debug("Cache Write error", "error", err)
+		}
+	}
+
+	l.Info("Metrics Scrapped",
+		"duration", time.Since(start),
+	)
+	return metricList, nil
 }
 
 func getAWSAccountID(cfg aws.Config) string {
