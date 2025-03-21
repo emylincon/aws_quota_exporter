@@ -3,6 +3,10 @@
 [![GitHub](https://img.shields.io/github/license/emylincon/aws_quota_exporter?style=for-the-badge)](https://github.com/emylincon/aws_quota_exporter/blob/main/LICENSE)
 [![Go Report Card](https://goreportcard.com/badge/github.com/emylincon/aws_quota_exporter?style=for-the-badge)](https://goreportcard.com/report/github.com/emylincon/aws_quota_exporter)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white&style=for-the-badge)](https://github.com/pre-commit/pre-commit)
+[![Github assets Downloads](https://img.shields.io/github/downloads/emylincon/aws_quota_exporter/total?style=for-the-badge)](https://github.com/emylincon/aws_quota_exporter/releases)
+[![Docker Pulls](https://img.shields.io/docker/pulls/ugwuanyi/aqe?style=for-the-badge)](https://hub.docker.com/repository/docker/ugwuanyi/aqe/general)
+
+
 # aws_quota_exporter
 Export AWS quotas on Prometheus
 
