@@ -23,7 +23,8 @@ import (
 )
 
 const (
-	maxSimilarity = 0.53
+	maxSimilarity        = 0.53
+	cloudwatchTimePeriod = 30 // 30 minutes
 )
 
 var (
@@ -381,9 +382,9 @@ func getQuotasUsage(ctx context.Context, quotas []sqTypes.ServiceQuota, cwclient
 			params := &cw.GetMetricStatisticsInput{
 				MetricName: aws.String(*q.UsageMetric.MetricName),
 				Namespace:  aws.String(*q.UsageMetric.MetricNamespace),
-				StartTime:  aws.Time(time.Now().Add(time.Minute * -10)),
+				StartTime:  aws.Time(time.Now().Add(time.Minute * -cloudwatchTimePeriod)),
 				EndTime:    aws.Time(time.Now()),
-				Period:     aws.Int32(60 * 10), // Get latest data, 5 minutes isn't always enough
+				Period:     aws.Int32(60 * cloudwatchTimePeriod), // Get latest data, 5 minutes isn't always enough
 				Dimensions: dimensions,
 				Statistics: []cwTypes.Statistic{cwTypes.Statistic(*q.UsageMetric.MetricStatisticRecommendation)},
 			}
@@ -399,7 +400,7 @@ func getQuotasUsage(ctx context.Context, quotas []sqTypes.ServiceQuota, cwclient
 					case "Average":
 						mq.Usage = *resp.Datapoints[0].Average
 					case "Sum":
-						mq.Usage = (*resp.Datapoints[0].Sum) / (60 * 10) // Sum is calculated over `Period` interval, should be equal
+						mq.Usage = (*resp.Datapoints[0].Sum) / (60 * cloudwatchTimePeriod) // Sum is calculated over `Period` interval, should be equal
 					case "SampleCount":
 						mq.Usage = *resp.Datapoints[0].SampleCount
 					}
