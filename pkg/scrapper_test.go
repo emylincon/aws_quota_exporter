@@ -196,9 +196,10 @@ func Test_getQuotasUsage(t *testing.T) {
 				ctx: context.TODO(),
 				quotas: []sqTypes.ServiceQuota{
 					{
-						QuotaCode: aws.String("L-12345"),
-						QuotaName: aws.String("Test Quota"),
-						Value:     aws.Float64(100),
+						ServiceCode: aws.String("test"),
+						QuotaCode:   aws.String("L-12345"),
+						QuotaName:   aws.String("Test Quota"),
+						Value:       aws.Float64(100),
 						UsageMetric: &sqTypes.MetricInfo{
 							MetricName:                    aws.String("CPUUtilization"),
 							MetricNamespace:               aws.String("AWS/EC2"),
@@ -212,9 +213,10 @@ func Test_getQuotasUsage(t *testing.T) {
 			want: []QuotaUsage{
 				{
 					Quota: sqTypes.ServiceQuota{
-						QuotaCode: aws.String("L-12345"),
-						QuotaName: aws.String("Test Quota"),
-						Value:     aws.Float64(100),
+						ServiceCode: aws.String("test"),
+						QuotaCode:   aws.String("L-12345"),
+						QuotaName:   aws.String("Test Quota"),
+						Value:       aws.Float64(100),
 						UsageMetric: &sqTypes.MetricInfo{
 							MetricName:                    aws.String("CPUUtilization"),
 							MetricNamespace:               aws.String("AWS/EC2"),

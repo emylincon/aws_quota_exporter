@@ -23,8 +23,7 @@ import (
 )
 
 const (
-	maxSimilarity        = 0.53
-	cloudwatchTimePeriod = 30 // 30 minutes
+	maxSimilarity = 0.53
 )
 
 var (
@@ -376,15 +375,19 @@ func getQuotasUsage(ctx context.Context, quotas []sqTypes.ServiceQuota, cwclient
 		mq := QuotaUsage{q, 0}
 		if q.UsageMetric != nil && !check[*q.QuotaCode] {
 			var dimensions []cwTypes.Dimension
+			var cloudwatchTimePeriod int32 = 15 // minutes, there can be up to 15 min delay in CloudWatch
+			if *q.ServiceCode == "rds" {
+				cloudwatchTimePeriod = 60 + 15 // minutes, increased due to delay in RDS usage metrics reporting
+			}
 			for k, v := range q.UsageMetric.MetricDimensions { // form Dimensions filter for GetMetricStatisticsInput based on UsageMetric.MetricDimensions
 				dimensions = append(dimensions, cwTypes.Dimension{Name: aws.String(k), Value: aws.String(v)})
 			}
 			params := &cw.GetMetricStatisticsInput{
 				MetricName: aws.String(*q.UsageMetric.MetricName),
 				Namespace:  aws.String(*q.UsageMetric.MetricNamespace),
-				StartTime:  aws.Time(time.Now().Add(time.Minute * -cloudwatchTimePeriod)),
+				StartTime:  aws.Time(time.Now().Add(time.Minute * -time.Duration(cloudwatchTimePeriod))),
 				EndTime:    aws.Time(time.Now()),
-				Period:     aws.Int32(60 * cloudwatchTimePeriod), // Get latest data, 5 minutes isn't always enough
+				Period:     aws.Int32(60 * cloudwatchTimePeriod),
 				Dimensions: dimensions,
 				Statistics: []cwTypes.Statistic{cwTypes.Statistic(*q.UsageMetric.MetricStatisticRecommendation)},
 			}
@@ -400,7 +403,7 @@ func getQuotasUsage(ctx context.Context, quotas []sqTypes.ServiceQuota, cwclient
 					case "Average":
 						mq.Usage = *resp.Datapoints[0].Average
 					case "Sum":
-						mq.Usage = (*resp.Datapoints[0].Sum) / (60 * cloudwatchTimePeriod) // Sum is calculated over `Period` interval, should be equal
+						mq.Usage = (*resp.Datapoints[0].Sum) / (60 * float64(cloudwatchTimePeriod)) // Sum is calculated over cloudwatchTimePeriod interval
 					case "SampleCount":
 						mq.Usage = *resp.Datapoints[0].SampleCount
 					}
