@@ -23,6 +23,7 @@ import (
 )
 
 const (
+        defaultCloudwatchTimePeriod = int32(15) // minutes, there can be up to 15 min delay in CloudWatch
 	maxSimilarity = 0.53
 )
 
@@ -375,9 +376,9 @@ func getQuotasUsage(ctx context.Context, quotas []sqTypes.ServiceQuota, cwclient
 		mq := QuotaUsage{q, 0}
 		if q.UsageMetric != nil && !check[*q.QuotaCode] {
 			var dimensions []cwTypes.Dimension
-			var cloudwatchTimePeriod int32 = 15 // minutes, there can be up to 15 min delay in CloudWatch
+			var cloudwatchTimePeriod int32 = defaultCloudwatchTimePeriod
 			if *q.ServiceCode == "rds" {
-				cloudwatchTimePeriod = 60 + 15 // minutes, increased due to delay in RDS usage metrics reporting
+				cloudwatchTimePeriod = 75 // minutes, increased due to delay in RDS usage metrics reporting
 			}
 			for k, v := range q.UsageMetric.MetricDimensions { // form Dimensions filter for GetMetricStatisticsInput based on UsageMetric.MetricDimensions
 				dimensions = append(dimensions, cwTypes.Dimension{Name: aws.String(k), Value: aws.String(v)})
