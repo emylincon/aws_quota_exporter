@@ -18,11 +18,17 @@ type MockCloudWatchClient struct {
 	CloudWatchClient
 }
 
+// Int32 returns a pointer to the int32 value passed in
+func Int32(v int32) *int32 {
+	return &v
+}
+
 func (m *MockCloudWatchClient) GetMetricStatistics(ctx context.Context, params *cw.GetMetricStatisticsInput, optFns ...func(*cw.Options)) (*cw.GetMetricStatisticsOutput, error) {
 	return &cw.GetMetricStatisticsOutput{
 		Datapoints: []cwTypes.Datapoint{
 			{
 				Average: aws.Float64(50),
+				Sum:     aws.Float64(1800),
 			},
 		},
 	}, nil
@@ -193,7 +199,7 @@ func Test_getQuotasUsage(t *testing.T) {
 			},
 		},
 		{
-			name: "Test with quotas with usage metrics",
+			name: "Test with quotas with usage metrics (MetricStatisticRecommendation: Average)",
 			args: args{
 				ctx: context.TODO(),
 				quotas: []sqTypes.ServiceQuota{
@@ -227,6 +233,86 @@ func Test_getQuotasUsage(t *testing.T) {
 						},
 					},
 					Usage: 50, // This should be set to the actual usage value from the mock CloudWatch client
+				},
+			},
+		},
+		{
+			name: "Test with quotas with usage metrics (MetricStatisticRecommendation: Sum, PeriodUnitSecond(1))",
+			args: args{
+				ctx: context.TODO(),
+				quotas: []sqTypes.ServiceQuota{
+					{
+						ServiceCode: aws.String("test"),
+						QuotaCode:   aws.String("L-12345"),
+						QuotaName:   aws.String("Test Quota"),
+						Value:       aws.Float64(100),
+						UsageMetric: &sqTypes.MetricInfo{
+							MetricName:                    aws.String("CPUUtilization"),
+							MetricNamespace:               aws.String("AWS/EC2"),
+							MetricDimensions:              map[string]string{"InstanceId": "i-1234567890abcdef0"},
+							MetricStatisticRecommendation: aws.String("Sum"),
+						},
+						Period: &sqTypes.QuotaPeriod{PeriodUnit: sqTypes.PeriodUnitSecond, PeriodValue: Int32(1)},
+					},
+				},
+				region: "us-west-2",
+			},
+			want: []QuotaUsage{
+				{
+					Quota: sqTypes.ServiceQuota{
+						ServiceCode: aws.String("test"),
+						QuotaCode:   aws.String("L-12345"),
+						QuotaName:   aws.String("Test Quota"),
+						Value:       aws.Float64(100),
+						UsageMetric: &sqTypes.MetricInfo{
+							MetricName:                    aws.String("CPUUtilization"),
+							MetricNamespace:               aws.String("AWS/EC2"),
+							MetricDimensions:              map[string]string{"InstanceId": "i-1234567890abcdef0"},
+							MetricStatisticRecommendation: aws.String("Sum"),
+						},
+						Period: &sqTypes.QuotaPeriod{PeriodUnit: sqTypes.PeriodUnitSecond, PeriodValue: Int32(1)},
+					},
+					Usage: 2, // This should be set to the function result based on data from the mock CloudWatch client
+				},
+			},
+		},
+		{
+			name: "Test with quotas with usage metrics (MetricStatisticRecommendation: Sum, PeriodUnitMinute(5))",
+			args: args{
+				ctx: context.TODO(),
+				quotas: []sqTypes.ServiceQuota{
+					{
+						ServiceCode: aws.String("test"),
+						QuotaCode:   aws.String("L-12345"),
+						QuotaName:   aws.String("Test Quota"),
+						Value:       aws.Float64(100),
+						UsageMetric: &sqTypes.MetricInfo{
+							MetricName:                    aws.String("CPUUtilization"),
+							MetricNamespace:               aws.String("AWS/EC2"),
+							MetricDimensions:              map[string]string{"InstanceId": "i-1234567890abcdef0"},
+							MetricStatisticRecommendation: aws.String("Sum"),
+						},
+						Period: &sqTypes.QuotaPeriod{PeriodUnit: sqTypes.PeriodUnitMinute, PeriodValue: Int32(5)},
+					},
+				},
+				region: "us-west-2",
+			},
+			want: []QuotaUsage{
+				{
+					Quota: sqTypes.ServiceQuota{
+						ServiceCode: aws.String("test"),
+						QuotaCode:   aws.String("L-12345"),
+						QuotaName:   aws.String("Test Quota"),
+						Value:       aws.Float64(100),
+						UsageMetric: &sqTypes.MetricInfo{
+							MetricName:                    aws.String("CPUUtilization"),
+							MetricNamespace:               aws.String("AWS/EC2"),
+							MetricDimensions:              map[string]string{"InstanceId": "i-1234567890abcdef0"},
+							MetricStatisticRecommendation: aws.String("Sum"),
+						},
+						Period: &sqTypes.QuotaPeriod{PeriodUnit: sqTypes.PeriodUnitMinute, PeriodValue: Int32(5)},
+					},
+					Usage: 600, // This should be set to the function result based on data from the mock CloudWatch client
 				},
 			},
 		},

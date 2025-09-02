@@ -4,6 +4,7 @@
 *.dll
 *.so
 *.dylib
+aws_quota_exporter
 
 # Test binary, built with `go test -c`
 *.test

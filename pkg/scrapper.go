@@ -23,8 +23,8 @@ import (
 )
 
 const (
-        defaultCloudwatchTimePeriod = int32(15) // minutes, there can be up to 15 min delay in CloudWatch
-	maxSimilarity = 0.53
+	defaultCloudwatchTimePeriod = int32(15) // minutes, there can be up to 15 min delay in CloudWatch
+	maxSimilarity               = 0.53
 )
 
 var (
@@ -376,7 +376,7 @@ func getQuotasUsage(ctx context.Context, quotas []sqTypes.ServiceQuota, cwclient
 		mq := QuotaUsage{q, 0}
 		if q.UsageMetric != nil && !check[*q.QuotaCode] {
 			var dimensions []cwTypes.Dimension
-			var cloudwatchTimePeriod int32 = defaultCloudwatchTimePeriod
+			var cloudwatchTimePeriod = defaultCloudwatchTimePeriod
 			if *q.ServiceCode == "rds" {
 				cloudwatchTimePeriod = 75 // minutes, increased due to delay in RDS usage metrics reporting
 			}
@@ -404,7 +404,17 @@ func getQuotasUsage(ctx context.Context, quotas []sqTypes.ServiceQuota, cwclient
 					case "Average":
 						mq.Usage = *resp.Datapoints[0].Average
 					case "Sum":
-						mq.Usage = (*resp.Datapoints[0].Sum) / (60 * float64(cloudwatchTimePeriod)) // Sum is calculated over cloudwatchTimePeriod interval
+						var periodSeconds float64
+						periodValue := float64(*q.Period.PeriodValue)
+						switch q.Period.PeriodUnit { // convert PeriodUnit to seconds
+						case sqTypes.PeriodUnitSecond:
+							periodSeconds = 1
+						case sqTypes.PeriodUnitMinute:
+							periodSeconds = 60
+						default:
+							slog.Warn("Unable to convert PeriodUnit to seconds", "QuotaCode", *q.QuotaCode, "PeriodUnit", q.Period.PeriodUnit)
+						}
+						mq.Usage = (*resp.Datapoints[0].Sum * periodSeconds * periodValue) / float64(cloudwatchTimePeriod*60) // Sum is calculated over cloudwatchTimePeriod interval
 					case "SampleCount":
 						mq.Usage = *resp.Datapoints[0].SampleCount
 					}
