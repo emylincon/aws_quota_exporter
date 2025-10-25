@@ -25,6 +25,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/emylincon/aws_quota_exporter/pkg"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/exp/slog"
 )
@@ -163,6 +164,7 @@ func main() {
 		}
 	}
 
+	reg.Register(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 	reg.Register(pkg.NewPrometheusCollector(buildInfoMetrics))
 
 	mux := http.NewServeMux()
