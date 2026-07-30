@@ -14,10 +14,11 @@ type QuotaConfig struct {
 
 // JobConfig struct
 type JobConfig struct {
-	ServiceCode string   `yaml:"serviceCode"`
-	Regions     []string `yaml:"regions"`
-	Role        string   `yaml:"role,omitempty"`
-	AccountName string   `yaml:"accountName,omitempty"`
+	ServiceCode   string   `yaml:"serviceCode"`
+	Regions       []string `yaml:"regions"`
+	Role          string   `yaml:"role,omitempty"`
+	AccountName   string   `yaml:"accountName,omitempty"`
+	WithUsageOnly bool     `yaml:"withUsageOnly,omitempty"`
 }
 
 // NewQuotaConfig creates a new QuotaConfig
