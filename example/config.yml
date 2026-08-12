@@ -27,3 +27,4 @@ jobs:
     regions:
       - us-west-1
       - us-east-1
+    withUsageOnly: true

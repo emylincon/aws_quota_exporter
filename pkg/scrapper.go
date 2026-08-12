@@ -137,7 +137,7 @@ func (s *Scraper) scrapeServiceMetrics(l *slog.Logger, job JobConfig, AccountID 
 			AccountName: job.AccountName,
 			AccountID:   AccountID,
 		}
-		go getServiceQuotas(ctx, collectUsage, jobRegionCfg, &input, sqclient, cwclient, c)
+		go getServiceQuotas(ctx, collectUsage, job.WithUsageOnly, jobRegionCfg, &input, sqclient, cwclient, c)
 	}
 	// retrieve channel results from goroutines
 	for i := 0; i < len(job.Regions); i++ {
@@ -277,12 +277,11 @@ func createDescription(serviceName, quotaName string) string {
 	return fmt.Sprintf("%s: %s", serviceName, quotaName)
 }
 
-func getServiceQuotas(ctx context.Context, collectUsage bool, jobRegionCfg JobRegion, sqInput *sq.ListServiceQuotasInput, sqclient *sq.Client, cwclient CloudWatchClient, c chan chanData) {
+func getServiceQuotas(ctx context.Context, collectUsage bool, withUsageOnly bool, jobRegionCfg JobRegion, sqInput *sq.ListServiceQuotasInput, sqclient *sq.Client, cwclient CloudWatchClient, c chan chanData) {
 	sqOpts := func(o *sq.Options) { o.Region = jobRegionCfg.Region }
 	asqInput := &sq.ListAWSDefaultServiceQuotasInput{ServiceCode: sqInput.ServiceCode, MaxResults: &maxResults}
 	var wg sync.WaitGroup
-	var r *sq.ListServiceQuotasOutput
-	var d *sq.ListAWSDefaultServiceQuotasOutput
+	var applied, defaults []sqTypes.ServiceQuota
 	var quotasUsage []QuotaUsage
 	errs := [2]error{}
 
@@ -290,13 +289,27 @@ func getServiceQuotas(ctx context.Context, collectUsage bool, jobRegionCfg JobRe
 
 	// Get applied Quotas
 	go func() {
-		r, errs[0] = getListServiceQuotas(ctx, sqclient, sqOpts, sqInput)
+		p := sq.NewListServiceQuotasPaginator(sqclient, sqInput)
+		applied, errs[0] = collectQuotaPages(ctx, withUsageOnly, p.HasMorePages, func(ctx context.Context) ([]sqTypes.ServiceQuota, error) {
+			page, err := p.NextPage(ctx, sqOpts)
+			if err != nil {
+				return nil, err
+			}
+			return page.Quotas, nil
+		})
 		wg.Done()
 	}()
 
 	// Get default Quotas
 	go func() {
-		d, errs[1] = getDefaultListServiceQuotas(ctx, sqclient, sqOpts, asqInput)
+		p := sq.NewListAWSDefaultServiceQuotasPaginator(sqclient, asqInput)
+		defaults, errs[1] = collectQuotaPages(ctx, withUsageOnly, p.HasMorePages, func(ctx context.Context) ([]sqTypes.ServiceQuota, error) {
+			page, err := p.NextPage(ctx, sqOpts)
+			if err != nil {
+				return nil, err
+			}
+			return page.Quotas, nil
+		})
 		wg.Done()
 	}()
 
@@ -313,7 +326,7 @@ func getServiceQuotas(ctx context.Context, collectUsage bool, jobRegionCfg JobRe
 	}
 
 	// merge applied Quotas with defaults
-	quotasMerged := append(r.Quotas, d.Quotas...)
+	quotasMerged := append(applied, defaults...)
 	if collectUsage { // Collect quota usage if enabled
 		quotasUsage = getQuotasUsage(ctx, quotasMerged, cwclient, jobRegionCfg.Region)
 	} else { // Otherwise just create quotasUsage struct from quotasMerged
@@ -330,42 +343,31 @@ func getServiceQuotas(ctx context.Context, collectUsage bool, jobRegionCfg JobRe
 	c <- data
 }
 
-func getListServiceQuotas(ctx context.Context, client *sq.Client, opts func(o *sq.Options), sqInput *sq.ListServiceQuotasInput) (*sq.ListServiceQuotasOutput, error) {
-
-	r, err := client.ListServiceQuotas(ctx, sqInput, opts)
-	if err != nil {
-		return nil, err
-	}
-	for r.NextToken != nil {
-		sqInput.NextToken = r.NextToken
-		rn, err := client.ListServiceQuotas(ctx, sqInput, opts)
+// collectQuotaPages collects quotas from  paginator, optionally filtering ones with UsageMetric defined
+func collectQuotaPages(ctx context.Context, withUsageOnly bool, hasMorePages func() bool, nextPage func(context.Context) ([]sqTypes.ServiceQuota, error)) ([]sqTypes.ServiceQuota, error) {
+	var quotas []sqTypes.ServiceQuota
+	for hasMorePages() {
+		page, err := nextPage(ctx)
 		if err != nil {
 			return nil, err
 		}
-		r.Quotas = append(r.Quotas, rn.Quotas...)
-		r.NextToken = rn.NextToken
-
+		if withUsageOnly {
+			page = filterUsageQuotas(page)
+		}
+		quotas = append(quotas, page...)
 	}
-	return r, nil
+	return quotas, nil
 }
 
-func getDefaultListServiceQuotas(ctx context.Context, client *sq.Client, opts func(o *sq.Options), sqInput *sq.ListAWSDefaultServiceQuotasInput) (*sq.ListAWSDefaultServiceQuotasOutput, error) {
-
-	r, err := client.ListAWSDefaultServiceQuotas(ctx, sqInput, opts)
-	if err != nil {
-		return nil, err
-	}
-	for r.NextToken != nil {
-		sqInput.NextToken = r.NextToken
-		rn, err := client.ListAWSDefaultServiceQuotas(ctx, sqInput, opts)
-		if err != nil {
-			return nil, err
+// filterUsageQuotas returns only the quotas that have a UsageMetric defined
+func filterUsageQuotas(quotas []sqTypes.ServiceQuota) []sqTypes.ServiceQuota {
+	filtered := make([]sqTypes.ServiceQuota, 0, len(quotas))
+	for _, q := range quotas {
+		if q.UsageMetric != nil {
+			filtered = append(filtered, q)
 		}
-		r.Quotas = append(r.Quotas, rn.Quotas...)
-		r.NextToken = rn.NextToken
-
 	}
-	return r, nil
+	return filtered
 }
 
 func getQuotasUsage(ctx context.Context, quotas []sqTypes.ServiceQuota, cwclient CloudWatchClient, region string) []QuotaUsage {
