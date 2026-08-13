@@ -127,7 +127,6 @@ func (s *Scraper) scrapeServiceMetrics(l *slog.Logger, job JobConfig, AccountID 
 	cfg := s.getAWSConfig(job.Role) // get credentials incase it expires
 	sqclient := sq.NewFromConfig(cfg)
 	cwclient := cw.NewFromConfig(cfg)
-	input := sq.ListServiceQuotasInput{ServiceCode: &job.ServiceCode, MaxResults: &maxResults}
 	metricList := []*PrometheusMetric{}
 	c := make(chan chanData)
 	// create goroutine workers
@@ -137,6 +136,8 @@ func (s *Scraper) scrapeServiceMetrics(l *slog.Logger, job JobConfig, AccountID 
 			AccountName: job.AccountName,
 			AccountID:   AccountID,
 		}
+		// each goroutine needs its own input copy to avoid a data race on NextToken
+		input := sq.ListServiceQuotasInput{ServiceCode: &job.ServiceCode, MaxResults: &maxResults}
 		go getServiceQuotas(ctx, collectUsage, job.WithUsageOnly, jobRegionCfg, &input, sqclient, cwclient, c)
 	}
 	// retrieve channel results from goroutines
