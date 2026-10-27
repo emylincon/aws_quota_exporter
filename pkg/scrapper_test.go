@@ -328,3 +328,20 @@ func Test_getQuotasUsage(t *testing.T) {
 		})
 	}
 }
+
+func Test_collectQuotaPages_skipsQuotasWithoutValue(t *testing.T) {
+	pages := [][]sqTypes.ServiceQuota{{
+		{QuotaCode: aws.String("L-1"), Value: aws.Float64(10), Unit: aws.String("None")},
+		{QuotaCode: aws.String("L-52F48BF6")},
+	}}
+	i := 0
+	got, err := collectQuotaPages(context.Background(), false,
+		func() bool { return i < len(pages) },
+		func(context.Context) ([]sqTypes.ServiceQuota, error) { i++; return pages[i-1], nil })
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 1 || aws.ToString(got[0].QuotaCode) != "L-1" {
+		t.Fatalf("want only L-1, got %d quotas", len(got))
+	}
+}

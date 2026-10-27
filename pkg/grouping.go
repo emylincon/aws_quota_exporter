@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/adrg/strutil/metrics"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	sqTypes "github.com/aws/aws-sdk-go-v2/service/servicequotas/types"
 	"github.com/emylincon/golist"
 	"golang.org/x/exp/slog"
@@ -84,7 +85,7 @@ func (g *Grouping) createPromMetric(m MetricGroup, metricType string) *Prometheu
 			"type":         metricType,
 			"adjustable":   strconv.FormatBool(m.Quota.Adjustable),
 			"global_quota": strconv.FormatBool(m.Quota.GlobalQuota),
-			"unit":         *m.Quota.Unit,
+			"unit":         aws.ToString(m.Quota.Unit),
 			"region":       g.region,
 			"account":      g.account,
 			"account_name": g.accountName,

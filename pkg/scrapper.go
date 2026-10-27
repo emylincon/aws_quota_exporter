@@ -258,7 +258,7 @@ func createPromMetric(m MetricGroup, metricType string, jobRegionCfg JobRegion) 
 			"type":         metricType,
 			"adjustable":   strconv.FormatBool(m.Quota.Adjustable),
 			"global_quota": strconv.FormatBool(m.Quota.GlobalQuota),
-			"unit":         *m.Quota.Unit,
+			"unit":         aws.ToString(m.Quota.Unit),
 			"region":       jobRegionCfg.Region,
 			"account":      jobRegionCfg.AccountID,
 			"name":         *m.Quota.QuotaName,
@@ -352,12 +352,24 @@ func collectQuotaPages(ctx context.Context, withUsageOnly bool, hasMorePages fun
 		if err != nil {
 			return nil, err
 		}
+		page = filterValuedQuotas(page)
 		if withUsageOnly {
 			page = filterUsageQuotas(page)
 		}
 		quotas = append(quotas, page...)
 	}
 	return quotas, nil
+}
+
+// filterValuedQuotas drops quotas AWS returns without a Value, which have no limit to export
+func filterValuedQuotas(quotas []sqTypes.ServiceQuota) []sqTypes.ServiceQuota {
+	filtered := make([]sqTypes.ServiceQuota, 0, len(quotas))
+	for _, q := range quotas {
+		if q.Value != nil {
+			filtered = append(filtered, q)
+		}
+	}
+	return filtered
 }
 
 // filterUsageQuotas returns only the quotas that have a UsageMetric defined
